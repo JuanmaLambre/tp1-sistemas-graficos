@@ -32,11 +32,14 @@ Revolution.Object3D = function() {
     }
 
     this.getIndexBuffer = function() {
-        return this.index;
+        return this.index || [];
     }
 
     this.getColorBuffer = function() {
-        return revolution.flatten(this.color, 1);
+        if (!this.color) 
+            return []
+        else
+            return revolution.flatten(this.color, 1);
     }
         
 }
