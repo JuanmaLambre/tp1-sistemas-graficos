@@ -294,5 +294,50 @@ revolution.sweep = (outline, init, end, opts={}) => {
     })
 }
 
+/**
+ * Calculates a point with Bezier curve evaluated in 't'
+ * 
+ */
+revolution.bezier = function(points, t) {
+    if (points.length == 1) {
+        return points[0]
+    } else {        
+        let newPoints = points.reduce((pts, p, i) => {
+            if (i == points.length - 1) {
+                return pts
+            } else {
+                let interpolated = p.map((coord, j) => {
+                    return (1-t)*p[j] + t*points[i+1][j]
+                })
+                return pts.concat([interpolated])
+            }
+        }, [])
+        return revolution.bezier(newPoints, t)
+    }
+}
+
+/**
+ * Build a Bezier concatenated curve with the given control points.
+ * The function builds a Bezier curve with the four first points, then 
+ * concatenates it with the last of these four points and the following three,
+ * and so it goes.
+ * 
+ * @return an outline
+ * 
+ * @param control control points. Length must be a multiple of 3 plus 1
+ * @param steps steps for discretion
+ */
+revolution.buildBezier = function(control, steps=16) {
+    if ((control.length-1) % 3 != 0) 
+        throw "Control points (" + control.length + " - 1) % 3 != 0)"
+    let outline = [];
+    for (let i = 0; i < control.length - 3; i += 3) {
+        outline = outline.concat(range(0,steps).map((step) => {   
+            return revolution.bezier(control.slice(i,i+4), 1.0*step/steps)
+        }))
+    }
+    return outline
+}
+
 }(window.revolution = window.revolution || {}))
     
