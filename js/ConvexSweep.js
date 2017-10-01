@@ -1,8 +1,8 @@
 (function(Revolution) {
     
-Revolution.ConvexSweep = class {
+Revolution.ConvexSweep = function() {
 
-    constructor(outline, init, end, opts={}) {
+    this.build = function(outline, init, end, opts={}) {
         function average(points) {
             return points[0].map((aux,i) => {
                 return points.reduce((acum,x) => {return acum+x[i]}, 0) * 1.0/points.length
@@ -19,10 +19,9 @@ Revolution.ConvexSweep = class {
             outline, init, end,
             {steps: steps, scale: scale, twist: twist}
         )
-        this.position = revolution.flattenSurface(
-            revolution.transpose(sweep)
-        )
+        this.position = revolution.flattenSurface(revolution.transpose(sweep))
         this.index = revolution.meshIndex(outline.length, steps+1, {close: true})
+        this.color = this.position.map((x,i) => {return [0.26, 0.53, 0.96][i%3]+(Math.random()-0.5)})        
 
         if (cover) {
             // Add the middle point of the cover to the position buffer
@@ -42,9 +41,12 @@ Revolution.ConvexSweep = class {
             this.index.push(last - 1*(outline.length % 2 == 0))
             this.index = [last-1,0,steps+1].concat(this.index)
         }
-
     }
 
 }
+
+var copyOfParent = Object.create(Revolution.Object3D.prototype); 
+copyOfParent.constructor = Revolution.ConvexSweep;
+Revolution.ConvexSweep.prototype = copyOfParent;
     
 }(window.Revolution = window.Revolution || {}))

@@ -58,6 +58,8 @@ function dot(A, B) {
     return res;
 }
 
+revolution.dot = dot;
+
 function minus(a, b) {
     if (typeof(a) === "number") {
         if (typeof(b) === "number") {
@@ -167,19 +169,14 @@ revolution.flattenGrid = function (grid) {
     return flat
 }
 
-/**
- * Flattens a surface for WebGL
- *
- * @param {*} surface
- */
-revolution.flattenSurface = function (surface) {
-    var flat = []
-    for (var outline = 0; outline < surface.length; outline++) {
-        for (var point = 0; point < surface[outline].length; point++) {
-            flat = flat.concat(surface[outline][point])
-        }
+revolution.flatten = function(list, depth) {
+    if (depth == 0) {
+        return list
+    } else {
+        return list.reduce((ret, sublist) => {
+            return ret.concat(revolution.flatten(sublist, depth-1))
+        }, [])
     }
-    return flat
 }
 
 

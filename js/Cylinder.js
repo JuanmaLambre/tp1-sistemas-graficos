@@ -1,26 +1,36 @@
 (function(Revolution) {
 
-Revolution.Cylinder = class {
+Revolution.Cylinder = function(opts = {}) {
 
-    constructor(opts={}) {
+    Revolution.Object3D.call(this);
+
+    this.build = function() {
         var { discretion = 32 } = opts
-        this.position = revolution.flattenSurface(
-            revolution.revolve([[-1,0,1], [1,0,1]], Math.PI/discretion, {axis:0})
+        this.position = revolution.flatten(
+            revolution.revolve([[-1,0,1], [1,0,1]], Math.PI/discretion, {axis:0}),
+            1
         )
         this.index = revolution.meshIndex(discretion*2, 2, {close: true})
-        this.position = this.position.concat([-1,0,0])
-        this.position = this.position.concat([1,0,0])
+        this.position.push([-1,0,0])
+        this.position.push([1,0,0])
         for (var i = 0; i < this.index.length; i++) {
             if (this.index[i] == this.index[i-1]) {
-                if (this.index[i] % 2 == 1) this.index.splice(i, 0, this.position.length/3 - 1)
-                else this.index.splice(i, 0, this.position.length/3 - 2)
+                if (this.index[i] % 2 == 1) this.index.splice(i, 0, this.position.length - 1)
+                else this.index.splice(i, 0, this.position.length - 2)
                 i++
             }
         }
-        this.index.push(this.position.length/3 - 2)
+        this.index.push(this.position.length - 2)
         this.index.push(2)
+        this.color = this.position.map((x,i) => {
+            return [2,0,1].map((i) => {return [0.26, 0.53, 0.96][i%3]+(Math.random()-0.5)})
+        });
     }
 
 }
+
+var copyOfParent = Object.create(Revolution.Object3D.prototype); 
+copyOfParent.constructor = Revolution.Cylinder;
+Revolution.Cylinder.prototype = copyOfParent;
 
 }(window.Revolution = window.Revolution || {}))
