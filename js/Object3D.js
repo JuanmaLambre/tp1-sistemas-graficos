@@ -2,7 +2,8 @@
     
 Revolution.Object3D = function() {
 
-    this.transformMat = [[1,0,0],[0,1,0],[0,0,1]]
+    this.tMat = mat4.create();
+    mat4.identity(this.tMat)
 
 
     this.add = function(obj) {
@@ -11,23 +12,32 @@ Revolution.Object3D = function() {
     }
 
     this.scale = function(units) {
-        this.transformMat[0][0] *= units[0]
-        this.transformMat[1][1] *= units[1]
-        this.transformMat[2][2] *= units[2]
+        mat4.scale(this.tMat, this.tMat, units)
     }
 
-    this.getPositionBuffer = function() {
+    this.rotate = function(angle, axis) {
+        mat4.rotate(this.tMat, this.tMat, angle, axis)
+    }
+
+    this.translate = function(delta) {
+        mat4.translate(this.tMat, this.tMat, delta)
+    }
+
+    this.getPositionBuffer = function(from = mat4.create()) {
         if (!this.position) {
             return []
         } else {
-            return revolution.flatten(
-                this.position.map((point) => {
-                    return revolution.transpose(revolution.dot(
-                        this.transformMat, revolution.transpose([point]))
-                    )[0]
-                }),
-                1
-            )
+            let trans = mat4.create();
+            mat4.multiply(trans, this.tMat, from)
+            return this.position.reduce((buffer, point) => {
+                let res = vec4.create(), p = vec4.clone(point.concat(1));
+                mat4.multiply(res, trans, p)
+                res = res.map((x) => {return x/res[3]}).slice(0,-1);
+                buffer.push(res[0])
+                buffer.push(res[1])
+                buffer.push(res[2])
+                return buffer
+            }, [])
         }
     }
 
@@ -40,6 +50,10 @@ Revolution.Object3D = function() {
             return []
         else
             return revolution.flatten(this.color, 1);
+    }
+
+    this.getTransformation = function() {
+        return this.tMat;
     }
         
 }
