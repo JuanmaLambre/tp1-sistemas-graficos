@@ -20,6 +20,7 @@ Revolution.Sphere = function(opts = {}) {
                 return [0.26, 0.53, 0.96][i%3] - 0.5 + bell
             })
         });
+        return this
     }
 
 }

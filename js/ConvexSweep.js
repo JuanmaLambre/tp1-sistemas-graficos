@@ -51,6 +51,7 @@ Revolution.ConvexSweep = function(outline, init, end, opts={}) {
             this.index.push(last - 1*(outline.length % 2 == 0))
             this.index = [last-1,0,steps+1].concat(this.index)
         }
+        return this
     }
 
 }
