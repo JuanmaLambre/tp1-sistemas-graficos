@@ -128,11 +128,12 @@
                 gl.useProgram(glProgram);
             }
 
-            function setupWebGLBuffers(obj) {
-                if (obj.getPositionBuffer()) {
+            function setupWebGLBuffers(obj, trans=mat4.create()) {
+                let posBuffer = obj.getPositionBuffer(trans);
+                if (posBuffer) {
                     obj.webgl_position_buffer = gl.createBuffer();
                     gl.bindBuffer(gl.ARRAY_BUFFER, obj.webgl_position_buffer);
-                    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(obj.getPositionBuffer()), gl.STATIC_DRAW);
+                    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(posBuffer), gl.STATIC_DRAW);
 
                     obj.webgl_color_buffer = gl.createBuffer();
                     gl.bindBuffer(gl.ARRAY_BUFFER, obj.webgl_color_buffer);
@@ -145,7 +146,7 @@
 
                 if (obj.children) {
                     for (var i = 0; i < obj.children.length; i++) {
-                        setupWebGLBuffers(obj.children[i]);
+                        setupWebGLBuffers(obj.children[i], obj.getTransformation());
                     }
                 }
             }
@@ -184,29 +185,14 @@
             }
             
             function buildScene() {
-                /*
-                scene = new Revolution.Cylinder();
-                scene.build();
-                scene.scale([1.5,1,1])
+                var cyl = new Revolution.Cylinder();
+                cyl.build();
+                cyl.translate([1.5,0,0])
+                scene.add(cyl)                
                 
                 var sphere = new Revolution.Sphere({radius: 1.2});
                 sphere.build();
-                sphere.scale([1,2,1])
                 scene.add(sphere);
-                */
-                let cvx = new Revolution.ConvexSweep(
-                    revolution.buildBezier([[-5,-5], [-4,2], [2,5], [7,0]]),
-                    [-1,0,0],
-                    [1,0,0],
-                    {
-                        steps: 1
-                    }
-                )
-                cvx.build();
-                cvx.scale([.2,.2,.2])
-                let s = new Revolution.Sphere()
-                s.build()
-                scene.add(cvx)
             }
 
             function initWebGL() {
@@ -237,7 +223,7 @@
                 // Preparamos una matriz de modelo+vista.
                 mat4.identity(mvMatrix);
                 mat4.translate(mvMatrix, mvMatrix, [0.0, 0.0, -5.0]);
-                mat4.rotate(mvMatrix, mvMatrix, t, [0.0, 1.0, .0]);
+                mat4.rotate(mvMatrix, mvMatrix, t, [0.0, 1.0, 1.0]);
                 t = t + 0.01;
 
                 gl.uniformMatrix4fv(u_model_view_matrix, false, mvMatrix);
