@@ -248,13 +248,13 @@ revolution.outline = function (f, end, opts={}) {
  * 
  * @param {int} radius
  * @param opts
-        discretion: integer
+        steps: integer
     */
 revolution.semicircle = function (radius=1, opts={}) {
-    var { discretion = 32 } = opts
+    var { steps = 32 } = opts
     var sc = []
-    for (var i = 0; i <= discretion; i++) {
-        var angle = i*Math.PI/discretion;
+    for (var i = 0; i <= steps; i++) {
+        var angle = i*Math.PI/steps;
         sc.push([radius*Math.cos(angle), radius*Math.sin(angle), 0])
     }
     return sc
