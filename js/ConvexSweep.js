@@ -1,13 +1,18 @@
 (function(Revolution) {
     
-Revolution.ConvexSweep = function() {
+Revolution.ConvexSweep = function(outline, init, end, opts={}) {
 
-    this.build = function(outline, init, end, opts={}) {
+    Revolution.Object3D.call(this);
+
+
+    this.build = function() {
         function average(points) {
             return points[0].map((aux,i) => {
                 return points.reduce((acum,x) => {return acum+x[i]}, 0) * 1.0/points.length
             })
         }
+
+        if (!outline || !init || !end) throw "Not enough params"
 
         var { scale = (x) => {return [1,1,1]},
             twist = (i) => {return 0},
@@ -19,16 +24,21 @@ Revolution.ConvexSweep = function() {
             outline, init, end,
             {steps: steps, scale: scale, twist: twist}
         )
-        this.position = revolution.flattenSurface(revolution.transpose(sweep))
+        this.position = revolution.flatten(revolution.transpose(sweep), 1)
         this.index = revolution.meshIndex(outline.length, steps+1, {close: true})
-        this.color = this.position.map((x,i) => {return [0.26, 0.53, 0.96][i%3]+(Math.random()-0.5)})        
+        this.color = this.position.map((x,i) => {
+            return [0,1,2].map((i) => {
+                var bell = Array.from(Array(20)).map(() => {return Math.random()})
+                bell = bell.reduce((s,x) => {return s+x}, 0)/bell.length
+                return [0.26, 0.53, 0.96][i%3] - 0.5 + bell
+            })
+        });
 
         if (cover) {
             // Add the middle point of the cover to the position buffer
-            this.position = this.position.
-                    concat(average(sweep[0])).
-                    concat(average(sweep[sweep.length-1]));
-            var last = this.position.length/3 - 1
+            this.position.push(average(sweep[0]));
+            this.position.push(average(sweep[sweep.length-1]));
+            var last = this.position.length - 1
             
             // Add the middle points of the cover to the index buffer
             for (var i = 0; i < this.index.length; i++) {
