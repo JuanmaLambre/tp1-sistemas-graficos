@@ -23,7 +23,11 @@ Revolution.Cylinder = function(opts = {}) {
         this.index.push(this.position.length - 2)
         this.index.push(2)
         this.color = this.position.map((x,i) => {
-            return [2,0,1].map((i) => {return [0.26, 0.53, 0.96][i%3]+(Math.random()-0.5)})
+            return [2,0,1].map((i) => {
+                var bell = Array.from(Array(20)).map(() => {return Math.random()})
+                bell = bell.reduce((s,x) => {return s+x}, 0)/bell.length
+                return [0.26, 0.53, 0.96][i%3] - 0.5 + bell
+            })
         });
     }
 
