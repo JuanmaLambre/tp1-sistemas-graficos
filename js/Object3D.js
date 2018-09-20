@@ -4,6 +4,7 @@ Revolution.Object3D = function() {
 
     this.tMat = mat4.create();
     mat4.identity(this.tMat)
+    this.children = []
 
 
     this.add = function(obj) {
@@ -28,7 +29,7 @@ Revolution.Object3D = function() {
             return []
         } else {
             let trans = mat4.create();
-            mat4.multiply(trans, this.tMat, from)
+            mat4.multiply(trans, from, this.tMat)
             return this.position.reduce((buffer, point) => {
                 let res = vec4.create(), p = vec4.clone(point.concat(1));
                 mat4.multiply(res, trans, p)
