@@ -7,7 +7,7 @@ Revolution.Cylinder = function(opts = {}) {
     this.build = function() {
         var { discretion = 32 } = opts
         this.position = revolution.flatten(
-            revolution.revolve([[-1,0,1], [1,0,1]], Math.PI/discretion, {axis:0}),
+            revolution.revolve([[-1,0,1], [1,0,1]], Math.PI/discretion, {axis:[1,0,0]}),
             1
         )
         this.index = revolution.meshIndex(discretion*2, 2, {close: true})

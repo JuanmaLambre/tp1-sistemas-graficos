@@ -56,6 +56,16 @@ Revolution.Object3D = function() {
     this.getTransformation = function() {
         return this.tMat;
     }
+
+    /**
+      Updates the index buffer according to any movement assigned
+    */
+    this.advance = function(delta) {
+        console.log("ADVANCE NOT IMPLEMENTATION MISSING")
+        for (var i = 0; i < this.children.length; ++i) {
+            // this.children[i].advance(delta)
+        }
+    }
         
 }
     

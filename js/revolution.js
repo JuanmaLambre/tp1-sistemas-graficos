@@ -80,10 +80,10 @@ function sum(a, b) {
     }
 }
 
-function rotate(point, angle, axis=DEFAULT_AXIS) {
-    var R = [[axis == 0 ? 1 : Math.cos(angle), axis == 2 ? -Math.sin(angle) : 0, axis == 1 ? Math.sin(angle) : 0],
-                [axis == 2 ? Math.sin(angle) : 0, axis == 1 ? 1 : Math.cos(angle), axis == 0 ? -Math.sin(angle) : 0],
-                [axis == 1 ? -Math.sin(angle) : 0, axis == 0 ? Math.sin(angle) : 0, axis == 2 ? 1 : Math.cos(angle)]]
+function rotate(point, angle, axisNo=DEFAULT_AXIS) {
+    var R = [[axisNo == 0 ? 1 : Math.cos(angle), axisNo == 2 ? -Math.sin(angle) : 0, axisNo == 1 ? Math.sin(angle) : 0],
+                [axisNo == 2 ? Math.sin(angle) : 0, axisNo == 1 ? 1 : Math.cos(angle), axisNo == 0 ? -Math.sin(angle) : 0],
+                [axisNo == 1 ? -Math.sin(angle) : 0, axisNo == 0 ? Math.sin(angle) : 0, axisNo == 2 ? 1 : Math.cos(angle)]]
     return dot([point], R)[0]
 }
 
@@ -119,18 +119,20 @@ function reflectionMat(a, b) {
  * @param {*} outline
  * @param {*} delta precision angle for discrete resolution
  * @param {*} opts
-         axis: rotation axis (defaults DEFAULTS_AXIS)
+        axis: rotation axis. Defaults [0,1,0]
         angle: length (in angle) of revolution. Defaults 2*PI (minus MIN_VALUE)
     */
 revolution.revolve = function (outline, delta, opts={}) {
-    var { axis } = opts
-    if (axis == null) axis = DEFAULT_AXIS
+    var {
+        axis = [0,1,0]
+    } = opts
+    var axisNo = axis.reduce((s,x,i)=>{return s+x*i}, 0)
     var maxAngle = opts.angle || 2*Math.PI - Number.MIN_VALUE
 
     var res = [outline];
     theta = delta;
     while (theta <= maxAngle) {
-        res.push(outline.map((p) => { return rotate(p, theta, axis) }))
+        res.push(outline.map((p) => { return rotate(p, theta, axisNo) }))
         theta += delta
     }
     return res
@@ -231,13 +233,15 @@ revolution.meshIndex = function (rows, cols, opts={}) {
         init: starting value. Defaults 0
 */
 revolution.outline = function (f, end, opts={}) {
-    var { init = 0.0, 
-            delta = (end-init)/50.0 } = opts;
+    var { 
+        init = 0.0, 
+        delta = (end-init)/50.0
+    } = opts;
     var x = init, 
         points = [];
     for (var i = 1; x <= end; i++) {
         points.push([x, f(x), 0])
-        x += typeof(delta) === "function" ? delta(i) : delta
+        x = typeof(delta) === "function" ? x+delta(i) : i*delta+init
     }
     return points
 }
