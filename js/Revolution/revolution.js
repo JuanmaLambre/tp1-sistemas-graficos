@@ -18,6 +18,10 @@ var DEFAULT_AXIS = 1 // x=0, y=1, z=2
 var EPSILON =Math.pow(10,-10)
 
 
+function axisNumber(axis) {
+    return axis.reduce((s,x,i)=>{return s+x*i}, 0)
+}
+
 function transpose(mat) {
     return mat[0].map((col, i) => {
         return mat.map((row) => {
@@ -32,6 +36,8 @@ function cross_prod(u, v) {
     return [u[1]*v[2]-u[2]*v[1], u[2]*v[0]-u[0]*v[2], u[0]*v[1]-u[1]*v[0]]
 }
 
+revolution.cross_prod = cross_prod
+
 function dot_prod(u, v) {
     return u.map((x,i) => {return x * v[i]}).reduce((x,y) => {return x + y});
 }
@@ -40,6 +46,8 @@ function normalize(v) {
     var length = Math.sqrt(v.reduce((x, y) => {return x + y**2}, 0));
     return v.map((x) => {return x/length});
 }
+
+revolution.normalize = normalize
 
 function dot(A, B) {
     var res = [];
@@ -60,6 +68,7 @@ function dot(A, B) {
 
 revolution.dot = dot;
 
+
 function minus(a, b) {
     if (typeof(a) === "number") {
         if (typeof(b) === "number") {
@@ -72,6 +81,9 @@ function minus(a, b) {
     }
 }
 
+revolution.minus = minus
+
+
 function sum(a, b) {
     if (typeof(a) === "number") {
         return a + b;
@@ -80,10 +92,21 @@ function sum(a, b) {
     }
 }
 
+revolution.sum = sum
+
+
+function scalar(n, v) {
+    return v.map((c) => {return n*c})
+}
+
+revolution.scalar = scalar
+
 function rotate(point, angle, axisNo=DEFAULT_AXIS) {
-    var R = [[axisNo == 0 ? 1 : Math.cos(angle), axisNo == 2 ? -Math.sin(angle) : 0, axisNo == 1 ? Math.sin(angle) : 0],
-                [axisNo == 2 ? Math.sin(angle) : 0, axisNo == 1 ? 1 : Math.cos(angle), axisNo == 0 ? -Math.sin(angle) : 0],
-                [axisNo == 1 ? -Math.sin(angle) : 0, axisNo == 0 ? Math.sin(angle) : 0, axisNo == 2 ? 1 : Math.cos(angle)]]
+    var R = [
+        [axisNo == 0 ? 1 : Math.cos(angle), axisNo == 2 ? -Math.sin(angle) : 0, axisNo == 1 ? Math.sin(angle) : 0],
+        [axisNo == 2 ? Math.sin(angle) : 0, axisNo == 1 ? 1 : Math.cos(angle), axisNo == 0 ? -Math.sin(angle) : 0],
+        [axisNo == 1 ? -Math.sin(angle) : 0, axisNo == 0 ? Math.sin(angle) : 0, axisNo == 2 ? 1 : Math.cos(angle)]
+    ]
     return dot([point], R)[0]
 }
 
@@ -110,6 +133,11 @@ function reflectionMat(a, b) {
     return sum(sum(Id,K), K2cos_ab);
 }
 
+revolution.normal = function(v1, v2) {
+    var perp = cross_prod(v1, v2)
+    var dif = sum(v1, scalar(-1, v2))
+    return normalize(cross_prod(perp, dif))
+}
 
 /**
  * Makes a revolution surface out of outline.
@@ -124,20 +152,42 @@ function reflectionMat(a, b) {
     */
 revolution.revolve = function (outline, delta, opts={}) {
     var {
-        axis = [0,1,0]
+        axis = [0,1,0],
+        angle = 2*Math.PI - Number.MIN_VALUE,
     } = opts
-    var axisNo = axis.reduce((s,x,i)=>{return s+x*i}, 0)
-    var maxAngle = opts.angle || 2*Math.PI - Number.MIN_VALUE
+    var axisNo = axisNumber(axis)
 
     var res = [outline];
-    theta = delta;
-    while (theta <= maxAngle) {
+    var theta = delta;
+    while (theta <= angle) {
         res.push(outline.map((p) => { return rotate(p, theta, axisNo) }))
         theta += delta
     }
     return res
 }
 
+/**
+ * Same as revolve(...), but twisting the outline {twists} times. It is asumed
+ that {outline} is centered in origin and has normal [0,0,1]
+*/
+revolution.revolve_twisted = function(outline, radius, twists, delta, opts={}) {
+    var {
+        angle = 2*Math.PI
+    } = opts;
+
+    var res = []
+    var theta = 0, i = 0
+    while (theta <= angle) {
+        var twistAngle = theta*2*Math.PI/(angle/twists)
+        var twisted = outline.map((p) => {return rotate(p, twistAngle, 2)})
+        twisted = twisted.map((p) => {return [p[0]+radius, p[1], p[2]]})
+        var out = twisted.map((p) => {return rotate(p, theta, 1)})
+        res.push(out)
+        theta = (++i)*delta
+    }
+
+    return res
+}
 
 /**
  * Makes a grid with points spaced by 1, on plane z=0
@@ -279,7 +329,8 @@ revolution.semicircle = function (radius=1, opts={}) {
         twist: function receiving a number between 0 and 1, and returns twist angle
  */
 revolution.sweep = (outline, init, end, opts={}) => {
-    var { steps = 50,
+    var { 
+        steps = 16,
         scale = (i) => {return [1,1,1]},
         twist = (i) => {return 0}
     } = opts;
@@ -292,8 +343,8 @@ revolution.sweep = (outline, init, end, opts={}) => {
             var angle = twist(stepIndex)
             var T = [[Math.cos(angle), -Math.sin(angle)], [Math.sin(angle), Math.cos(angle)]]
             var twisted = transpose(dot(T, transpose([scaled])))[0]
-            var rotated = transpose(dot(R, transpose([twisted.concat(0)])))[0]
-            return sum(newCenter, rotated)
+            //var rotated = transpose(dot(R, transpose([twisted.concat(0)])))[0]
+            return sum(newCenter, twisted.concat(0))
         })
     })
 }
@@ -302,7 +353,7 @@ revolution.sweep = (outline, init, end, opts={}) => {
  * Calculates a point with Bezier curve evaluated in 't'
  * 
  */
-revolution.bezier = function(points, t) {
+function bezier(points, t) {
     if (points.length == 1) {
         return points[0]
     } else {        
@@ -316,7 +367,7 @@ revolution.bezier = function(points, t) {
                 return pts.concat([interpolated])
             }
         }, [])
-        return revolution.bezier(newPoints, t)
+        return bezier(newPoints, t)
     }
 }
 
@@ -336,11 +387,49 @@ revolution.buildBezier = function(control, steps=16) {
         throw "Control points (" + control.length + " - 1) % 3 != 0)"
     let outline = [];
     for (let i = 0; i < control.length - 3; i += 3) {
-        outline = outline.concat(range(0,steps).map((step) => {   
-            return revolution.bezier(control.slice(i,i+4), 1.0*step/steps)
+        outline = outline.concat(range(0,steps+1).map((step) => {   
+            return bezier(control.slice(i,i+4), 1.0*step/steps)
         }))
     }
     return outline
+}
+
+function bspline2(points, steps) {
+    var res = [], u = 0
+    for (var i = 0; i <= steps; ++i) {
+        var u = i/steps
+        res = res.concat([
+            sum(
+                scalar(0.5*(1-u)**2, points[0]),
+                sum(
+                    scalar(0.5+(1-u)*u, points[1]),
+                    scalar(0.5*u**2, points[2])
+                )
+            )
+        ])
+    }
+    return res
+}
+
+revolution.buildBSpline2 = function(control, steps=16) {
+    if (control.length < 3) {
+        throw "Not enough control points for cuadratic B-Spline"
+    }
+    var res = []
+    for (var i = 2; i < control.length; ++i) {
+        res = res.concat(bspline2(control.slice(i-2, i+1), steps))
+    }
+    return res
+}
+
+/** In 3D space. Phi is the angle to the x-axis, and theta to the y-axis
+*/
+revolution.polarToCart = function(radius, phi, theta) {
+    return [
+        radius*Math.cos(phi)*Math.sin(theta),
+        radius*Math.cos(theta),
+        -radius*Math.sin(phi)*Math.sin(theta)
+    ]
 }
 
 }(window.revolution = window.revolution || {}))

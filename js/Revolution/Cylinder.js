@@ -29,6 +29,10 @@ Revolution.Cylinder = function(opts = {}) {
                 return [0.26, 0.53, 0.96][i%3] - 0.5 + bell
             })
         });
+        this.normal = this.position.map((x) => {
+            return [0, x[1], x[2]]
+        })
+
         return this
     }
 
