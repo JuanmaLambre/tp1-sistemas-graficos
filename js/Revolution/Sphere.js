@@ -4,26 +4,19 @@ Revolution.Sphere = function(opts = {}) {
 
     Revolution.Object3D.call(this);
 
-    this.build = function() {
+
+    this.build = function constructor() {
         var { 
             radius = 1,
             discretion = 16
         } = opts
-            
+
         var semicircle = revolution.semicircle(radius, {steps:discretion})
         var s = new Revolution.RevolutionSweep(semicircle, {steps:discretion, axis:[1,0,0]}).build()
 
         this.add(s)
 
         return this
-    }
-
-    this.getNormalBuffer = function() {
-        if (!this.position) {
-            return []
-        } else {
-            return revolution.flatten(this.position, 1)
-        }
     }
 
 }

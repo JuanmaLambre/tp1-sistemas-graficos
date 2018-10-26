@@ -14,7 +14,7 @@ function setOrthographic(axis) {
         case "x":
             camera.rho = 0
             camera.alpha = Math.PI/2
-            mat4.ortho(pMatrix, 20, -10, 0, 20, 50, -30)
+            mat4.ortho(pMatrix, 20, -10, -3, 17, 50, -30)
             break
         case "y":
             camera.rho = -Math.PI/2

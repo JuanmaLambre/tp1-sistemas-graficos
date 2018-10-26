@@ -1,6 +1,6 @@
 function setupWebGLBuffers(obj, trans = mat4.create()) { 
     let posBuffer = obj.getPositionBuffer(trans);
-    if (posBuffer) {
+    if (posBuffer.length > 0) {
         obj.webgl_position_buffer = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, obj.webgl_position_buffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(posBuffer), gl.STATIC_DRAW);
@@ -18,12 +18,10 @@ function setupWebGLBuffers(obj, trans = mat4.create()) {
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(obj.getNormalBuffer()), gl.STATIC_DRAW);   
     }
 
-    if (obj.children) {
-        for (var i = 0; i < obj.children.length; i++) {
-            var newTrans = mat4.create()
-            mat4.multiply(newTrans, trans, obj.getTransformation())
-            setupWebGLBuffers(obj.children[i], newTrans);
-        }
+    for (var i = 0; i < obj.children.length; i++) {
+        var newTrans = mat4.create()
+        mat4.multiply(newTrans, trans, obj.getTransformation())
+        setupWebGLBuffers(obj.children[i], newTrans);
     }
 }
 

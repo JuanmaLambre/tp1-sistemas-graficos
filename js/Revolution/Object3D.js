@@ -87,7 +87,20 @@ Revolution.Object3D = function() {
     }
 
     this.getNormalBuffer = function() {
-        return revolution.flatten(this.normal || [], 1)
+        if (!this.normal) {
+            return []
+        } else if (!this._normalBuffer) {
+            var nMat = mat4.create()
+            mat4.invert(nMat, this.tMat)
+            mat4.transpose(nMat, nMat)
+            this._normalBuffer = revolution.flatten(
+                this.normal.map((p) => {
+                    let res = vec4.create()
+                    mat4.multiply(res, nMat, p.concat([1]))
+                    return revolution.normalize(res.slice(0,3))
+                }), 2)
+        }
+        return this._normalBuffer
     }
 
     this.clone = function(clazz = Revolution.Object3D) {

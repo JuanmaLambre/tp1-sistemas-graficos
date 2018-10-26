@@ -24,6 +24,7 @@ Bakery.DecorationArm = function(params = {}) {
         finger2.translate([0,5.8,-1/6])
         this.add(finger2)
 
+        this.setColor([0.7,0,0.7])
         return this
     }
 

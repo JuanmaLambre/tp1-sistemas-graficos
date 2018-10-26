@@ -85,18 +85,21 @@
             varying highp vec4 vColor;
             varying highp vec4 vNormal;
 
-            highp vec3 ilum;
+            highp vec3 ilum1;
+            highp vec3 ilum2;
             highp vec3 norm;
             highp vec3 col;
 
             void main(void) {
-                ilum = vec3(-1.0,1.0,1.0);
+                ilum1 = vec3(-1.0,1.0,1.0);
+                ilum2 = vec3(1.0,1.0,-1.0);                
                 norm = vec3(vNormal);
                 col = vec3(vColor);
                 // gl_FragColor es una variable "built-in" de GLSL que es usada para 
                 // almacenar el color resultante del fragmento.
                 // cos(alpha) * vColor, alpha: ilum & vNormal
-                gl_FragColor = vec4((max(dot(ilum, norm),0.0)/(length(norm)*length(ilum))) * col, 1.0);
+                gl_FragColor = 0.5 * (vec4((max(dot(ilum1, norm),0.0)/(length(norm)*length(ilum1))) * col, 1.0) + 
+                    vec4((max(dot(ilum2, norm),0.0)/(length(norm)*length(ilum2))) * col, 1.0));
             }
         </script>
 
@@ -156,11 +159,15 @@
                 },
                 setCameraDefaults: function() {
                     camera = jQuery.extend({}, CAMERA_DEFAULTS)
+                },
+                generateScene: function() {
+                    generateCake()
+                    generateDecorationMachine()
                 }
             }
 
             var gui = buildDatGUI()
-            
+
 
             function generateCake() {
                 scene.remove("cake")
@@ -168,6 +175,14 @@
                 cake.translate([0,3.5,4])
                 cake.setName("cake")
                 scene.add(cake)
+            }
+
+            function generateDecorationMachine() {
+                scene.remove("decoration machine")
+                let machine = new Bakery.DecorationMachine(params.cake.decoration).build()
+                machine.translate([0,0,4])
+                machine.setName("decoration machine")
+                scene.add(machine)
             }
 
             function buildDatGUI() {
@@ -189,7 +204,7 @@
                 cakeFolder.add(params.cake, "floors", 1, 5).name("Floors").step(1)
                 cakeFolder.add(params.cake, "ringTwists", 1, 8).name("Ring twists").step(1)
                 cakeFolder.add(params.cake, "waveWidth", 0.05, 0.25).name("Wave width").step(0.05)
-                cakeFolder.add(window, "generateCake").name("Generate")
+                cakeFolder.add(datActions, "generateScene").name("Generate")
                 return gui
             }
 
@@ -204,6 +219,7 @@
             
             function buildScene() {
                 generateCake()
+                generateDecorationMachine()
 
                 var conveyor = new Bakery.Conveyor().build()
                 conveyor.translate([0,3.5,0])
@@ -214,19 +230,15 @@
                 floor.translate([0,-0.05,5])
                 scene.add(floor)
 
-                var wall1 = new Revolution.Prism(0.1, 10, 30).build()
-                wall1.translate([-20,5,5])
-                wall1.setColor([0.9,0.9,0.9])
+                var wall1 = new Revolution.Prism(0.1, 15, 30).build()
+                wall1.translate([-20,7.5,5])
+                wall1.setColor([0.7,1,1])
                 scene.add(wall1)
 
-                var wall2 = new Revolution.Prism(40, 10, 0.1).build()
-                wall2.translate([0,5,-10])
-                wall2.setColor([0.9,0.9,0.9])
+                var wall2 = new Revolution.Prism(40, 15, 0.1).build()
+                wall2.translate([0,7.5,-10])
+                wall2.setColor([0.7,1,1])
                 scene.add(wall2)
-
-                var decorationMachine = new Bakery.DecorationMachine().build()
-                decorationMachine.translate([0,0,4])
-                scene.add(decorationMachine)
 
                 var edgeMachine = new Bakery.EdgeMachine().build()
                 edgeMachine.translate([0,0,12])
@@ -245,7 +257,7 @@
                     initShaders();
                     setupWebGLBuffers(scene);
                     setDefaultPerspective()
-                    setInterval(drawScene, 10);
+                    setInterval(drawScene, 20);
                 } else {    
                     alert("Error: Your browser does not appear to support WebGL.");
                 }
@@ -269,12 +281,9 @@
                 
                 // Preparamos una matriz de modelo+vista.
                 rotateCamera()
-                //mat4.rotate(mvMatrix, mvMatrix, t, [0.0, 1.0, 0.0]);
                 t = t + 0.01;
                 
                 gl.uniformMatrix4fv(u_model_view_matrix, false, mvMatrix);
-                //scene.rotate(0.01, [0,1,0])
-                //scene.advance(0.01)
                 setupWebGLBuffers(scene)
                 drawVertexGrid(scene);
             }

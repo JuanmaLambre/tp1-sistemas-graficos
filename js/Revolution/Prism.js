@@ -22,7 +22,13 @@ Revolution.Prism = function(width, height, depth) {
         this.color = this.position.map((x) => {
             return [1,0,1].map( (i) => {return i*Math.random()} )
         })
-        this.normal = this.position.map((p,i) => {return [0,0,1]})
+        this.normal = this.position.map((p) => {
+            var xSign = p[0] > 0 ? 1 : -1,
+                ySign = p[1] > 0 ? 1 : -1,
+                zSign = p[2] > 0 ? 1 : -1
+            var l = 1/Math.sqrt(3)
+            return [xSign*l, ySign*l, zSign*l]
+        })
 
         return this
     }
