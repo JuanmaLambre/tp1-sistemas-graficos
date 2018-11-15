@@ -22,6 +22,7 @@ Bakery.Cake = function(params = {}) {
         }
     }
 
+
     this.build = function() {
         var {
             radius,
@@ -54,7 +55,7 @@ Bakery.Cake = function(params = {}) {
             let obj = buildEdge(edge, base.getHeight()*1.1)
             obj.rotate(i*2*Math.PI/edgesCount, [0,1,0])
             obj.translate([radius,0,0])
-            this.add(obj)
+            //this.add(obj)
         }
 
         var plate = new Bakery.Plate(radius*1.1).build()

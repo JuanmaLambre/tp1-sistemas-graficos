@@ -110,6 +110,12 @@ function rotate(point, angle, axisNo=DEFAULT_AXIS) {
     return dot([point], R)[0]
 }
 
+revolution.rotate = rotate
+
+revolution.angle = function(v1, v2) {
+    return Math.acos(dot_prod(v1, v2))
+}
+
 function range(x, y) {
     var ret = [];
     for (var i = x; i < y; i++) {

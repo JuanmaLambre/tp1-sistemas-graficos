@@ -52,3 +52,31 @@ function drawVertexGrid(obj) {
         drawVertexGrid(obj.children[i]);
     }
 }
+
+function setCamaraBuffers() {
+    let u_proj_matrix = gl.getUniformLocation(glProgram, "uPMatrix");
+    gl.uniformMatrix4fv(u_proj_matrix, false, pMatrix);
+    let u_model_view_matrix = gl.getUniformLocation(glProgram, "uMVMatrix");
+    gl.uniformMatrix4fv(u_model_view_matrix, false, mvMatrix);
+    let u_mvmat_ti = gl.getUniformLocation(glProgram, "uMVMatrix_TI")
+    let mvmat_ti = mat4.create() 
+    mat4.transpose(mvmat_ti, mat4.invert(mvmat_ti, mvMatrix))
+    gl.uniformMatrix4fv(u_mvmat_ti, false, mvmat_ti)
+    
+    let phi = -camera.alpha - Math.PI/2, theta = Math.PI/2 - camera.rho
+    let cameraPos = revolution.polarToCart(camera.radius, phi, theta)
+    var u_camera_pos = gl.getUniformLocation(glProgram, "vCamera")
+    gl.uniform3fv(u_camera_pos, cameraPos)
+
+}
+
+function setLightBuffers() {
+    for (let i = 0; i < lights.length; ++i) {
+        let unifL = gl.getUniformLocation(glProgram, "L" + (i+1))
+        gl.uniform3fv(unifL, lights[i].position)
+        let unifI = gl.getUniformLocation(glProgram, "I" + (i+1))
+        gl.uniform3fv(unifI, lights[i].color)
+        let unifIe = gl.getUniformLocation(glProgram, "Ie" + (i+1))
+        gl.uniform3fv(unifIe, lights[i].spectral)
+    }
+}

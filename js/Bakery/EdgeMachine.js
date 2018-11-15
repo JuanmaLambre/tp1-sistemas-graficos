@@ -11,10 +11,14 @@ Bakery.EdgeMachine = function(params = {}) {
         support.setColor([0.7,0.4,0.9])
         this.add(support)
 
-        var arm = new Bakery.EdgeArm().build()
-        this.add(arm)
+        this.arm = new Bakery.EdgeArm().build()
+        this.add(this.arm)
 
         return this
+    }
+
+    this.setArmAnimation = function(anim) {
+        this.arm.setAnimation(anim)
     }
 
 }

@@ -58,9 +58,9 @@ $("#contenedor3D").mousemove(function(e) {
 $("body").on("keydown", (e) => {
     let key = e.key.toUpperCase()
     if (key == "W" && camera.perspective) {
-        camera.radius -= 1
+        camera.radius *= 9/10
     } else if (key == "S" && camera.perspective) {
-        camera.radius += 1
+        camera.radius /= 9/10
     } else if ((key == "A" || key == "D") && camera.perspective) {
         let phi = -camera.alpha - Math.PI/2, theta = Math.PI/2 - camera.rho
         var viewVec = revolution.polarToCart(camera.radius, phi, theta)

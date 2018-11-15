@@ -53,24 +53,29 @@
         <script type="text/javascript" src="js/Bakery/DecorationArm.js"></script>
         <script type="text/javascript" src="js/Bakery/EdgeMachine.js"></script>
         <script type="text/javascript" src="js/Bakery/EdgeArm.js"></script>
+
+        <script type="text/javascript" src="js/Light.js"></script>
+        <script type="text/javascript" src="js/animations/Animation.js"></script>
+        <script type="text/javascript" src="js/animations/CakeAnimations.js"></script>
+        <script type="text/javascript" src="js/animations/EdgeAnimations.js"></script>
+        <script type="text/javascript" src="js/animations/DecoAnimations.js"></script>
         
         
-        <script id="shader-vs" type="x-shader/x-vertex" src="shaders/default-vs.vert">            
+        <script id="shader-vs" type="x-shader/x-vertex">            
             // Los atributos son caracteristicas propias de cada vertice.
             attribute vec3 aVertexPosition;
             attribute vec3 aVertexColor;
             attribute vec3 aVertexNormal;
+            attribute highp float glossiness;
 
             // Los uniforms son caracteristicas propias de una etapa de dibujado completa.
-            // Son comunes a todos los vertices involucrados en el dibujado.
             uniform mat4 uMVMatrix;
             uniform mat4 uPMatrix;
+            uniform mat4 uMVMatrix_TI;
 
-            // Los varying son propiedades que toman valor para cada fragmento a partir
-            // de interpolar linealmente entre los valores que se les asigna en cada 
-            // vertice del poligono al cual pertenecen.
+            // Los varying toman valor para cada fragmento a partir de la interpolacion
             varying highp vec4 vColor;    
-            varying highp vec4 vNormal;    
+            varying highp vec4 vNormal;
 
             void main(void) {
                 // gl_Position es una variable "built-in" de GLSL que es usada para 
@@ -81,25 +86,29 @@
             }
         </script>
 
-        <script id="shader-fs" type="x-shader/x-fragment" src="shaders/default-fs.frag">
+        <script id="shader-fs" type="x-shader/x-fragment">
             varying highp vec4 vColor;
             varying highp vec4 vNormal;
 
-            highp vec3 ilum1;
-            highp vec3 ilum2;
-            highp vec3 norm;
-            highp vec3 col;
+            uniform lowp vec3 I1, I2, I3;
+            uniform lowp vec3 Ie1, Ie2, Ie3;
+            uniform lowp vec3 L1, L2, L3;
+
+            lowp vec3 n, k, vCamera;
+            lowp vec3 buf;
 
             void main(void) {
-                ilum1 = vec3(-1.0,1.0,1.0);
-                ilum2 = vec3(1.0,1.0,-1.0);                
-                norm = vec3(vNormal);
-                col = vec3(vColor);
+                n = vec3(vNormal);
+                k = vec3(vColor);
+
                 // gl_FragColor es una variable "built-in" de GLSL que es usada para 
                 // almacenar el color resultante del fragmento.
-                // cos(alpha) * vColor, alpha: ilum & vNormal
-                gl_FragColor = 0.5 * (vec4((max(dot(ilum1, norm),0.0)/(length(norm)*length(ilum1))) * col, 1.0) + 
-                    vec4((max(dot(ilum2, norm),0.0)/(length(norm)*length(ilum2))) * col, 1.0));
+                gl_FragColor = vec4(
+                    I1*k*(1.0+dot(L1,n)) + Ie1*k*pow(dot(2.0*dot(L1,n)*n - L1, vCamera), 1.0) + 
+                        I2*k*(1.0+dot(L2,n)) + Ie2*k*pow(dot(2.0*dot(L2,n)*n - L2, vCamera), 1.0) +
+                        I3*k*(1.0+dot(L3,n)) + Ie3*k*pow(dot(2.0*dot(L3,n)*n - L3, vCamera), 1.0)
+                    , 1.0);
+                //gl_FragColor = vec4((0.5*n+vec3(0.5)), 1.0);
             }
         </script>
 
@@ -107,11 +116,15 @@
             var gl = null,
                 canvas = null,
                 glProgram = null,
-                fragmentShader = null,
-                vertexShader = null,
-                t = 0.0,
+                FPS = 20,
                 my_grid = null,
-                scene = new Revolution.Object3D();
+                scene = new Revolution.Object3D(),
+                lights = [
+                    new Light(0.02).at([0,25,0]),
+                    new Light(0.02).at([25,15,0]),
+                    new Light(0.02).at([0,15,25])
+                ]
+                //cakeAnimations = edgeAnimations = decoAnimations = null
 
             var mvMatrix = mat4.create();
             var pMatrix = mat4.create();
@@ -125,9 +138,9 @@
                     ringTwists: 4,
                     waveWidth: 0.125,
                     decoration: "ball",
-                    decorationsCount: 8,
+                    decorationsCount: 3,
                     edge: "cylinder",
-                    edgesCount: 24
+                    edgesCount: 8
                 }
             }
 
@@ -163,6 +176,7 @@
                 generateScene: function() {
                     generateCake()
                     generateDecorationMachine()
+                    buildAnimations()
                 }
             }
 
@@ -172,8 +186,9 @@
             function generateCake() {
                 scene.remove("cake")
                 let cake = new Bakery.Cake(params.cake).build()
-                cake.translate([0,3.5,4])
+                cake.translate([0,3.5,-1.5])
                 cake.setName("cake")
+
                 scene.add(cake)
             }
 
@@ -183,6 +198,16 @@
                 machine.translate([0,0,4])
                 machine.setName("decoration machine")
                 scene.add(machine)
+            }
+
+            function buildAnimations() {
+                let decoAnimations = new DecoAnimations(
+                    scene.getChild("decoration machine"),
+                    params.cake.decorationsCount,
+                    5*params.cake.radius/9
+                )
+                let edgeAnimations = new EdgeAnimations(scene.getChild("edge machine"), params.cake.edgesCount)
+                let cakeAnimation = new CakeAnimations(scene.getChild("cake"), decoAnimations, edgeAnimations)
             }
 
             function buildDatGUI() {
@@ -228,21 +253,24 @@
                 var floor = new Revolution.Prism(40, 0.1, 30).build()
                 floor.setColor([0.3,0.3,0.3])
                 floor.translate([0,-0.05,5])
-                scene.add(floor)
+                //scene.add(floor)
 
                 var wall1 = new Revolution.Prism(0.1, 15, 30).build()
                 wall1.translate([-20,7.5,5])
                 wall1.setColor([0.7,1,1])
-                scene.add(wall1)
+                //scene.add(wall1)
 
                 var wall2 = new Revolution.Prism(40, 15, 0.1).build()
                 wall2.translate([0,7.5,-10])
                 wall2.setColor([0.7,1,1])
-                scene.add(wall2)
+                //scene.add(wall2)
 
                 var edgeMachine = new Bakery.EdgeMachine().build()
                 edgeMachine.translate([0,0,12])
+                edgeMachine.setName("edge machine")
                 scene.add(edgeMachine)
+
+                buildAnimations()
             }
 
             function initWebGL() {
@@ -255,9 +283,8 @@
                     buildScene();
                     setupWebGL();
                     initShaders();
-                    setupWebGLBuffers(scene);
-                    setDefaultPerspective()
-                    setInterval(drawScene, 20);
+                    setOrthographic("y")
+                    setInterval(drawScene, 1000/FPS);
                 } else {    
                     alert("Error: Your browser does not appear to support WebGL.");
                 }
@@ -273,19 +300,15 @@
 
             function drawScene() {
                 gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-                var u_proj_matrix = gl.getUniformLocation(glProgram, "uPMatrix");
                 
-                // Preparamos una matriz P
-                gl.uniformMatrix4fv(u_proj_matrix, false, pMatrix);
-                var u_model_view_matrix = gl.getUniformLocation(glProgram, "uMVMatrix");
-                
-                // Preparamos una matriz de modelo+vista.
                 rotateCamera()
-                t = t + 0.01;
                 
-                gl.uniformMatrix4fv(u_model_view_matrix, false, mvMatrix);
+                setCamaraBuffers();
+                setLightBuffers();
                 setupWebGLBuffers(scene)
                 drawVertexGrid(scene);
+                
+                scene.advance()
             }
 
         </script>

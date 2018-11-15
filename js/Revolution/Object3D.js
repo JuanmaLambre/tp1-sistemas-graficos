@@ -5,6 +5,7 @@ Revolution.Object3D = function() {
     this.tMat = mat4.create();
     mat4.identity(this.tMat)
     this.children = []
+    this.animation = null
 
 
     function applyChildren(children, funcName, ...args) {
@@ -35,6 +36,18 @@ Revolution.Object3D = function() {
         return null
     }
 
+    this.getChild = function(name) {
+        for (var i = 0; i < this.children.length; i++) {
+            if (this.children[i].getName() == name)
+                return this.children[i]
+        }
+        return null
+    }
+
+    this.setAnimation = function(anim) {
+        this.animation = anim
+    }
+
     this.scale = function(unit) {
         if (typeof(unit) === "number") this.scale([unit,unit,unit])
         else mat4.scale(this.tMat, this.tMat, unit)
@@ -59,10 +72,10 @@ Revolution.Object3D = function() {
     this.getPositionBuffer = function(from = mat4.create()) {
         if (!this.position) {
             return []
-        } else if (!this._positionBuffer) {
+        } else {
             let trans = mat4.create();
             mat4.multiply(trans, from, this.tMat)
-            this._positionBuffer = this.position.reduce((buffer, point) => {
+            return this.position.reduce((buffer, point) => {
                 let res = vec4.create(), p = vec4.clone(point.concat(1));
                 mat4.multiply(res, trans, p)
                 buffer.push(res[0])
@@ -71,7 +84,6 @@ Revolution.Object3D = function() {
                 return buffer
             }, [])
         }
-        return this._positionBuffer
     }
 
     this.getIndexBuffer = function() {
@@ -83,24 +95,23 @@ Revolution.Object3D = function() {
     }
 
     this.getTransformation = function() {
-        return this.tMat;
+        return this.tMat
     }
 
     this.getNormalBuffer = function() {
         if (!this.normal) {
             return []
-        } else if (!this._normalBuffer) {
+        } else {
             var nMat = mat4.create()
             mat4.invert(nMat, this.tMat)
             mat4.transpose(nMat, nMat)
-            this._normalBuffer = revolution.flatten(
+            return revolution.flatten(
                 this.normal.map((p) => {
                     let res = vec4.create()
                     mat4.multiply(res, nMat, p.concat([1]))
                     return revolution.normalize(res.slice(0,3))
                 }), 2)
         }
-        return this._normalBuffer
     }
 
     this.clone = function(clazz = Revolution.Object3D) {
@@ -118,16 +129,45 @@ Revolution.Object3D = function() {
         return cp
     }
 
-
-    /**
-      Updates the index buffer according to any movement assigned
-    */
-    this.advance = function(delta) {
-        console.log("ADVANCE NOT IMPLEMENTED")
-        for (var i = 0; i < this.children.length; ++i) {
-            // this.children[i].advance(delta)
+    this.advance = function() {
+        if (this.animation) {
+            if (this.animation.marked) this.animation.advance()
+            mat4.mul(this.tMat, this.animation.transformation, this.tMat)
         }
+
+        for (let i = 0; i < this.children.length; ++i) {
+            this.children[i].advance()
+            this.children[i].markAnimation()
+        }
+
+        this.markAnimation()
     }
+
+    this.markAnimation = function() {
+        if (this.animation) this.animation.marked = true
+        for (let i = 0; i < this.children.length; ++i)
+            this.children[i].markAnimation()
+    }
+
+    /*
+        this.advance = function() {
+        let anims = this.getAllAnimations()
+        for (let i = 0; i <  anims.length; ++i) {
+            anims[i].advance()
+        }
+
+        if (this.animation && this.animation.isActive()) 
+            mat4.mul(this.tMat, this.animation.transformation, this.tMat)
+    }
+
+    this.getAllAnimations = function() {
+        return (this.animation ? [this.animation] : []).concat(
+            this.children.reduce((r, c) => {
+                return r.concat(c.getAllAnimations())
+            }, [])
+        )
+    }
+    */
         
 }
     
