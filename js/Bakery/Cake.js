@@ -31,32 +31,19 @@ Bakery.Cake = function(params = {}) {
             waveWidth,
             ringTwists,
             decoration,
-            decorationsCount,
             edge,
-            edgesCount
+            edgesCount,
+            flavor = "cream"
         } = params;
+        this.height = height
 
         var base = new Bakery.CakeBase({floors:floors, waveWidth:waveWidth, radius:radius, height:height}).build()
+        base.setFlavor(flavor)
         this.add(base)
         
         var ring = new Bakery.CakeRing({twists:ringTwists, radius:radius}).build()
         ring.translate([0,base.getHeight(),0])
         this.add(ring)
-
-        for (var i = 0; i < decorationsCount; i++) {
-            let deco = buildDecoration(decoration)
-            let angle = i*2*Math.PI/decorationsCount
-            deco.rotate(angle, [0,1,0])
-            deco.translate([5*radius/9,base.getHeight(),0])
-            this.add(deco)
-        }
-
-        for (var i = 0; i < edgesCount; i++) {
-            let obj = buildEdge(edge, base.getHeight()*1.1)
-            obj.rotate(i*2*Math.PI/edgesCount, [0,1,0])
-            obj.translate([radius,0,0])
-            //this.add(obj)
-        }
 
         var plate = new Bakery.Plate(radius*1.1).build()
         this.add(plate)
@@ -64,6 +51,24 @@ Bakery.Cake = function(params = {}) {
         this.translate([0,plate.getHeight(),0])
 
         return this
+    }
+
+    this.addDecoration = function(angle) {
+        let deco = buildDecoration(params.decoration)
+        deco.translate([5*params.radius/9, params.height, 0])
+        let container = new Revolution.Object3D()
+        container.add(deco)
+        container.rotate(angle, [0,1,0])
+        this.add(container)
+    }
+
+    this.addEdge = function(angle) {
+        let obj = buildEdge(params.edge, params.height*1.1)
+        obj.translate([params.radius, 0, 0])
+        let container = new Revolution.Object3D()
+        container.add(obj)
+        container.rotate(angle, [0,1,0])
+        this.add(container)
     }
 
 }

@@ -20,12 +20,13 @@ Bakery.Conveyor = function(params = {}) {
         var leg = new Revolution.Prism(0.5, 3, 0.5).build()
         leg.translate([0,-1.75,0])
         leg.setColor([0.2,1,0.2])
-        var xOffset = 1.25, zOffset = 3.25
+        var xOffset = 1.25, zOffset = 3.75
         
         for (var side = -1; side < 2; side += 2) {
-            for (var i = 1; i <= 5; i++) {
+            for (var i = 0; i <= 4; i++) {
                 var cpLeg = leg.clone()
                 cpLeg.translate([xOffset*side, 0, zOffset*i])
+                cpLeg.translate([0,0,1])
                 this.add(cpLeg)
             }
         }

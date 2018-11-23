@@ -82,5 +82,8 @@ $("body").on("keydown", (e) => {
         setOrthographic("y")                      
     } else if (key == "6") {
         setOrthographic("z")
+    } else if (key == "7") {
+        setDefaultPerspective()
+        camera.followCake = true
     }
 })

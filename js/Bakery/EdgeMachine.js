@@ -1,8 +1,17 @@
 (function(Bakery, Revolution) {
 
-Bakery.EdgeMachine = function(params = {}) {
+Bakery.EdgeMachine = function(edge, height) {
 
     Revolution.Object3D.call(this);
+
+
+    function buildEdge(edge, height) {
+        switch(edge) {
+            case "cylinder": return new Bakery.EdgeCylinder(height).build()
+            case "prism": return new Bakery.EdgePrism(height).build()
+            default: throw "Unknown edge: " + edge
+        }
+    }
 
 
     this.build = function() {
@@ -12,9 +21,21 @@ Bakery.EdgeMachine = function(params = {}) {
         this.add(support)
 
         this.arm = new Bakery.EdgeArm().build()
+        this.arm.translate([-0.5,0,0])
         this.add(this.arm)
+        
+        this.generateEdge()
 
         return this
+    }
+
+    this.generateEdge = function() {
+        let edgeDeco = buildEdge(edge, height*1.1)
+        this.arm.addEdge(edgeDeco)
+    }
+
+    this.removeEdge = function() {
+        return this.arm.removeEdge()
     }
 
     this.setArmAnimation = function(anim) {

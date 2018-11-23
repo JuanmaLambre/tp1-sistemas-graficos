@@ -2,10 +2,10 @@
     
 Revolution.Object3D = function() {
 
-    this.tMat = mat4.create();
-    mat4.identity(this.tMat)
+    this.transformation = new Transformation()
     this.children = []
     this.animation = null
+    this.center = [0,0,0]
 
 
     function applyChildren(children, funcName, ...args) {
@@ -50,15 +50,16 @@ Revolution.Object3D = function() {
 
     this.scale = function(unit) {
         if (typeof(unit) === "number") this.scale([unit,unit,unit])
-        else mat4.scale(this.tMat, this.tMat, unit)
+        else this.transformation.scale(unit)
     }
 
     this.rotate = function(angle, axis) {
-        mat4.rotate(this.tMat, this.tMat, angle, axis)
+        this.transformation.rotate(angle, axis)
     }
 
     this.translate = function(delta) {
-        mat4.translate(this.tMat, this.tMat, delta)
+        this.transformation.translate(delta)
+        this.center = revolution.sum(this.center, delta)
     }
 
     this.setColor = function(color) {
@@ -68,13 +69,33 @@ Revolution.Object3D = function() {
         applyChildren(this.children, "setColor", color)
     }
 
+    this.loadTexture = function(filename, name) {
+        this.glTextureName = name
+        let img = new Image()
+        img.crossOrigin = "anonymous"
+        img.onload = function() {
+            this.glTexture = gl.createTexture();
+            //gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+            gl.bindTexture(gl.TEXTURE_2D, this.glTexture);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+            //gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+            //gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST);
+            gl.generateMipmap(gl.TEXTURE_2D);
+            gl.bindTexture(gl.TEXTURE_2D, null);
+        }
+        img.src = filename
+    }
+
+    this.hasTexture = function() {
+        return this.glTexture != null
+    }
 
     this.getPositionBuffer = function(from = mat4.create()) {
         if (!this.position) {
             return []
         } else {
             let trans = mat4.create();
-            mat4.multiply(trans, from, this.tMat)
+            mat4.multiply(trans, from, this.getTransformation())
             return this.position.reduce((buffer, point) => {
                 let res = vec4.create(), p = vec4.clone(point.concat(1));
                 mat4.multiply(res, trans, p)
@@ -95,28 +116,35 @@ Revolution.Object3D = function() {
     }
 
     this.getTransformation = function() {
-        return this.tMat
+        return this.transformation.matrix()
     }
 
-    this.getNormalBuffer = function() {
+    this.getNormalBuffer = function(from = mat4.create()) {
         if (!this.normal) {
             return []
         } else {
-            var nMat = mat4.create()
-            mat4.invert(nMat, this.tMat)
-            mat4.transpose(nMat, nMat)
             return revolution.flatten(
                 this.normal.map((p) => {
                     let res = vec4.create()
-                    mat4.multiply(res, nMat, p.concat([1]))
+                    mat4.multiply(res, from, p.concat([1]))
                     return revolution.normalize(res.slice(0,3))
                 }), 2)
         }
     }
 
+    this.getTextureBuffer = function() {
+        return revolution.flatten(
+            this.texture || this.position.map((v) => {
+                let x = revolution.normalize(v.slice(0,2))
+                return isNaN(x[0]) ? [1,1] : x
+            }),
+            2
+        )
+    }
+
     this.clone = function(clazz = Revolution.Object3D) {
         var cp = new clazz()
-        cp.tMat = mat4.clone(this.tMat)
+        cp.transformation = this.transformation.clone()
         if (this.position) cp.position = this.position.slice(0)
         if (this.color) cp.color = this.color.slice(0)
         if (this.index) cp.index = this.index.slice(0)
@@ -130,17 +158,17 @@ Revolution.Object3D = function() {
     }
 
     this.advance = function() {
-        if (this.animation) {
-            if (this.animation.marked) this.animation.advance()
-            mat4.mul(this.tMat, this.animation.transformation, this.tMat)
+        this.markAnimation()
+
+        if (this.animation && this.animation.isRunning()) {
+            let anim = this.animation
+            anim.advance()
+            this.transformation.apply(anim.stepTransformation)
         }
 
         for (let i = 0; i < this.children.length; ++i) {
             this.children[i].advance()
-            this.children[i].markAnimation()
         }
-
-        this.markAnimation()
     }
 
     this.markAnimation = function() {
@@ -148,26 +176,6 @@ Revolution.Object3D = function() {
         for (let i = 0; i < this.children.length; ++i)
             this.children[i].markAnimation()
     }
-
-    /*
-        this.advance = function() {
-        let anims = this.getAllAnimations()
-        for (let i = 0; i <  anims.length; ++i) {
-            anims[i].advance()
-        }
-
-        if (this.animation && this.animation.isActive()) 
-            mat4.mul(this.tMat, this.animation.transformation, this.tMat)
-    }
-
-    this.getAllAnimations = function() {
-        return (this.animation ? [this.animation] : []).concat(
-            this.children.reduce((r, c) => {
-                return r.concat(c.getAllAnimations())
-            }, [])
-        )
-    }
-    */
         
 }
     

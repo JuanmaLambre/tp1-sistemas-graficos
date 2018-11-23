@@ -21,8 +21,14 @@ Revolution.RevolutionSweep = function(outline, opts={}) {
             axis = [0,1,0]
         } = opts
 
-        this.position = revolution.revolve(outline, Math.PI*2/steps, {axis:axis})
-        this.position = revolution.flattenGrid(this.position)
+        let grid = revolution.revolve(outline, Math.PI*2/steps, {axis:axis})
+        this.texture = grid.map((outline, i) => {
+            return outline.map((x,j) => {
+                return [i/grid.length, j/outline.length]
+            })
+        })
+        this.texture = revolution.flattenGrid(this.texture)
+        this.position = revolution.flattenGrid(grid)
         this.index = revolution.meshIndex(steps, outline.length, {close:true})
         this.color = this.position.map((x,i) => {
             return [1,1,0].map((c) => {return Math.random()*c} )

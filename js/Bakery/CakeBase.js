@@ -5,6 +5,10 @@ Bakery.CakeBase = function(params = {}) {
     Revolution.Object3D.call(this);
 
     var DEFAULT_HEIGHT = 0.7
+    var FLAVOR_FILENAMES = {
+        "cream": "maps/crema.jpg",
+        "chocolate": "maps/chocolate.jpg"
+    }
 
     function buildPoints(params) {
         var {
@@ -22,16 +26,22 @@ Bakery.CakeBase = function(params = {}) {
             points.push([-radius+waveWidth,height-(i*2+2)*yDelta,0])
         }
 
-        return points.concat([[0,0,0],[0,0,0]])//points.concat([[-radius+waveWidth,0,0],[0,0,0],[0,0,0]])
+        return points.concat([[0,0,0],[0,0,0]])
     }
 
     this.build = function() {
         var control = buildPoints(params)
 
-        this.add(new Revolution.RevolutionSweep(revolution.buildBSpline2(control, 8)).build())
+        let obj = new Revolution.RevolutionSweep(revolution.buildBSpline2(control, 8)).build()
+        this.add(obj)
         this.setColor([0.8,0.8,0.1])
 
         return this
+    }
+
+    this.setFlavor = function(flavor) {
+        //this.children[0].loadTexture(FLAVOR_FILENAMES[flavor], "flavor")
+        this.children[0].setName("base")
     }
 
     this.getHeight = function() {

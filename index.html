@@ -24,6 +24,9 @@
         <script type="text/javascript" src="js/lib/dat.gui.min.js"></script>
         <script type="text/javascript" src="js/lib/jquery-2.1.4.min.js"></script>
 
+        <script type="text/javascript" src="js/Light.js"></script>
+        <script type="text/javascript" src="js/Transformation.js"></script>
+
         <script src="js/buffers.js" type="text/javascript"></script>
         <script src="js/shaders.js" type="text/javascript"></script>
         <script src="js/interaction.js" type="text/javascript"></script>
@@ -54,7 +57,6 @@
         <script type="text/javascript" src="js/Bakery/EdgeMachine.js"></script>
         <script type="text/javascript" src="js/Bakery/EdgeArm.js"></script>
 
-        <script type="text/javascript" src="js/Light.js"></script>
         <script type="text/javascript" src="js/animations/Animation.js"></script>
         <script type="text/javascript" src="js/animations/CakeAnimations.js"></script>
         <script type="text/javascript" src="js/animations/EdgeAnimations.js"></script>
@@ -66,6 +68,7 @@
             attribute vec3 aVertexPosition;
             attribute vec3 aVertexColor;
             attribute vec3 aVertexNormal;
+            attribute highp vec2 aVertexTexture;
             attribute highp float glossiness;
 
             // Los uniforms son caracteristicas propias de una etapa de dibujado completa.
@@ -74,8 +77,9 @@
             uniform mat4 uMVMatrix_TI;
 
             // Los varying toman valor para cada fragmento a partir de la interpolacion
-            varying highp vec4 vColor;    
+            varying highp vec4 vColor;
             varying highp vec4 vNormal;
+            varying highp vec2 vTexture;
 
             void main(void) {
                 // gl_Position es una variable "built-in" de GLSL que es usada para 
@@ -83,6 +87,7 @@
                 gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
                 vColor = vec4(aVertexColor,1.0);
                 vNormal = vec4(aVertexNormal,1.0);
+                vTexture = aVertexTexture;
             }
         </script>
 
@@ -97,6 +102,9 @@
             lowp vec3 n, k, vCamera;
             lowp vec3 buf;
 
+            uniform sampler2D flavor;
+            varying highp vec2 vTexture;
+
             void main(void) {
                 n = vec3(vNormal);
                 k = vec3(vColor);
@@ -108,7 +116,9 @@
                         I2*k*(1.0+dot(L2,n)) + Ie2*k*pow(dot(2.0*dot(L2,n)*n - L2, vCamera), 1.0) +
                         I3*k*(1.0+dot(L3,n)) + Ie3*k*pow(dot(2.0*dot(L3,n)*n - L3, vCamera), 1.0)
                     , 1.0);
-                //gl_FragColor = vec4((0.5*n+vec3(0.5)), 1.0);
+                return;
+                highp vec4 textureColor = texture2D(flavor, vTexture);
+                gl_FragColor = vec4(textureColor.rgb, textureColor.a);
             }
         </script>
 
@@ -117,14 +127,12 @@
                 canvas = null,
                 glProgram = null,
                 FPS = 20,
-                my_grid = null,
                 scene = new Revolution.Object3D(),
                 lights = [
                     new Light(0.02).at([0,25,0]),
                     new Light(0.02).at([25,15,0]),
                     new Light(0.02).at([0,15,25])
                 ]
-                //cakeAnimations = edgeAnimations = decoAnimations = null
 
             var mvMatrix = mat4.create();
             var pMatrix = mat4.create();
@@ -138,7 +146,7 @@
                     ringTwists: 4,
                     waveWidth: 0.125,
                     decoration: "ball",
-                    decorationsCount: 3,
+                    decorationsCount: 5,
                     edge: "cylinder",
                     edgesCount: 8
                 }
@@ -157,7 +165,8 @@
                 radius: 30.0,
                 translation: [0,0,0],
                 perspective: true,
-                orthographic: false
+                orthographic: false,
+                followCake: false
             }
             var camera = jQuery.extend({}, CAMERA_DEFAULTS)
             
@@ -166,7 +175,7 @@
                     alert(
                         "W, S: Zoom in and out\n" +
                         "A, D: Move left and right\n" +
-                        "1-6: Select cameras\n" +
+                        "1-7: Select cameras\n" +
                         "DragnDrop: Rotate camera (on perspective view)"
                     )
                 },
@@ -176,8 +185,16 @@
                 generateScene: function() {
                     generateCake()
                     generateDecorationMachine()
+                    generateEdgeMachine()
                     buildAnimations()
-                }
+                    Animation.playAll()
+                },
+                togglePlay: function() {
+                    if (this.isPlaying) Animation.pauseAll()
+                    else Animation.playAll()
+                    this.isPlaying = !this.isPlaying
+                },
+                isPlaying: true
             }
 
             var gui = buildDatGUI()
@@ -200,6 +217,15 @@
                 scene.add(machine)
             }
 
+            function generateEdgeMachine() {
+                let { edge, height } = params.cake
+                scene.remove("edge machine")
+                let edgeMachine = new Bakery.EdgeMachine(edge, height).build()
+                edgeMachine.translate([0,0,12])
+                edgeMachine.setName("edge machine")
+                scene.add(edgeMachine)
+            }
+
             function buildAnimations() {
                 let decoAnimations = new DecoAnimations(
                     scene.getChild("decoration machine"),
@@ -214,6 +240,7 @@
                 var gui = new dat.GUI()
                 gui.add(datActions, "help").name("Help")
                 gui.add(datActions, "setCameraDefaults").name("Reset camera")
+                gui.add(datActions, "togglePlay").name("Play/Pause")
 
                 let cakeFolder = gui.addFolder("Cake")
                 cakeFolder.add(params.cake, "decoration",
@@ -245,6 +272,7 @@
             function buildScene() {
                 generateCake()
                 generateDecorationMachine()
+                generateEdgeMachine()
 
                 var conveyor = new Bakery.Conveyor().build()
                 conveyor.translate([0,3.5,0])
@@ -253,22 +281,17 @@
                 var floor = new Revolution.Prism(40, 0.1, 30).build()
                 floor.setColor([0.3,0.3,0.3])
                 floor.translate([0,-0.05,5])
-                //scene.add(floor)
+                scene.add(floor)
 
                 var wall1 = new Revolution.Prism(0.1, 15, 30).build()
                 wall1.translate([-20,7.5,5])
                 wall1.setColor([0.7,1,1])
-                //scene.add(wall1)
+                scene.add(wall1)
 
                 var wall2 = new Revolution.Prism(40, 15, 0.1).build()
                 wall2.translate([0,7.5,-10])
                 wall2.setColor([0.7,1,1])
-                //scene.add(wall2)
-
-                var edgeMachine = new Bakery.EdgeMachine().build()
-                edgeMachine.translate([0,0,12])
-                edgeMachine.setName("edge machine")
-                scene.add(edgeMachine)
+                scene.add(wall2)
 
                 buildAnimations()
             }
@@ -283,7 +306,8 @@
                     buildScene();
                     setupWebGL();
                     initShaders();
-                    setOrthographic("y")
+                    setDefaultPerspective()
+                    camera.radius = 15
                     setInterval(drawScene, 1000/FPS);
                 } else {    
                     alert("Error: Your browser does not appear to support WebGL.");
@@ -295,6 +319,8 @@
                 mat4.translate(mvMatrix, mvMatrix, [0.0, 0.0, -camera.radius]);
                 mat4.rotate(mvMatrix, mvMatrix, camera.rho, [1,0,0])
                 mat4.rotate(mvMatrix, mvMatrix, camera.alpha, [0,1,0])
+                if (camera.followCake) 
+                    camera.translation = revolution.scalar(-1, scene.getChild("cake").transformation.translation)
                 mat4.translate(mvMatrix, mvMatrix, camera.translation)
             }
 
@@ -305,6 +331,8 @@
                 
                 setCamaraBuffers();
                 setLightBuffers();
+                setUniformLocations();
+
                 setupWebGLBuffers(scene)
                 drawVertexGrid(scene);
                 

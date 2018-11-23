@@ -9,26 +9,24 @@ Revolution.Axis = function(scale = 1) {
         var yAxis = new Revolution.Cylinder().build();
         var zAxis = new Revolution.Cylinder().build();
 
-        xAxis.color = xAxis.position.map((x,i) => {
-            return [1,0,0]
-        });
-        yAxis.color = yAxis.position.map((x,i) => {
-            return [0,1,0]
-        });
-        zAxis.color = zAxis.position.map((x,i) => {
-            return [0,0,1]
-        });
+        xAxis._debug = "x"
+        yAxis._debug = "y"
+        zAxis._debug = "z"
+
+        xAxis.setColor([1,0,0])
+        yAxis.setColor([0,1,0])
+        zAxis.setColor([0,0,1])
 
         xAxis.scale([scale/2,0.1,0.1])
-        xAxis.translate([1,0,0])
+        xAxis.translate([scale/2,0,0])
 
-        yAxis.scale([0.1,scale/2,0.1])
+        yAxis.scale([scale/2,0.1,0.1])
         yAxis.rotate(Math.PI/2, [0,0,1])
-        yAxis.translate([1,0,0])
+        yAxis.translate([0,scale/2,0])
         
-        zAxis.scale([0.1,0.1,scale/2])
+        zAxis.scale([scale/2,0.1,0.1])
         zAxis.rotate(Math.PI/2, [0,1,0])
-        zAxis.translate([-1,0,0])
+        zAxis.translate([0,0,scale/2])
 
         this.add(xAxis);
         this.add(yAxis);

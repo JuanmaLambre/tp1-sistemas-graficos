@@ -13,6 +13,7 @@ Revolution.Sphere = function(opts = {}) {
 
         var semicircle = revolution.semicircle(radius, {steps:discretion})
         var s = new Revolution.RevolutionSweep(semicircle, {steps:discretion, axis:[1,0,0]}).build()
+        s.setName("sphere")
 
         this.add(s)
 

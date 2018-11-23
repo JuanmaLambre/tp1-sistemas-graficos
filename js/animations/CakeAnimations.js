@@ -11,13 +11,14 @@ class CakeAnimations {
 
     _startInitAnimation() {
         let anim = new Animation(5.5/this.speed, this, "_finishInitAnimation")
+        anim._debug = "cake init"
         anim.translate([0,0,5.5])
         this.cake.setAnimation(anim)
     }
 
     _finishInitAnimation() {
-        //this.deco.start(this, "_startMiddleAnimation")
-        this._startMiddleAnimation()
+        this.deco.start(this, "_startMiddleAnimation", this.cake)
+        //this._startMiddleAnimation()
     }
 
     _startMiddleAnimation() {
@@ -27,7 +28,7 @@ class CakeAnimations {
     }
 
     _finishMiddleAnimation() {
-        this.edge.start(this, "_startEndAnimation")
+        this.edge.start(this, "_startEndAnimation", this.cake)
     }
 
     _startEndAnimation() {

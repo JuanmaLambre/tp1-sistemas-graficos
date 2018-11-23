@@ -15,12 +15,18 @@ function setupWebGLBuffers(obj, trans = mat4.create()) {
         
         obj.webgl_normal_buffer = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, obj.webgl_normal_buffer);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(obj.getNormalBuffer()), gl.STATIC_DRAW);   
-    }
+        let nTrans = mat4.create()
+        mat4.transpose(nTrans, mat4.invert(nTrans, trans))
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(obj.getNormalBuffer(nTrans)), gl.STATIC_DRAW);
+
+        //obj.webgl_texture_buffer = gl.createBuffer();
+        //gl.bindBuffer(gl.ARRAY_BUFFER, obj.webgl_texture_buffer);
+        //gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(obj.getTextureBuffer()), gl.STATIC_DRAW);
+    }   
 
     for (var i = 0; i < obj.children.length; i++) {
-        var newTrans = mat4.create()
-        mat4.multiply(newTrans, trans, obj.getTransformation())
+        let newTrans = obj.transformation.matrix()
+        mat4.mul(newTrans, trans, newTrans)
         setupWebGLBuffers(obj.children[i], newTrans);
     }
 }
@@ -31,6 +37,13 @@ function drawVertexGrid(obj) {
         gl.enableVertexAttribArray(vertexPositionAttribute);
         gl.bindBuffer(gl.ARRAY_BUFFER, obj.webgl_position_buffer);
         gl.vertexAttribPointer(vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
+
+        if (obj.hasTexture()) {
+            let textureCoordAttribute = gl.getAttribLocation(glProgram, "aVertexTexture")
+            gl.enableVertexAttribArray(textureCoordAttribute)
+            gl.bindBuffer(gl.ARRAY_BUFFER, obj.webgl_texture_buffer);
+            gl.vertexAttribPointer(textureCoordAttribute, 2, gl.FLOAT, false, 0, 0);
+        }
 
         var vertexColorAttribute = gl.getAttribLocation(glProgram, "aVertexColor");
         gl.enableVertexAttribArray(vertexColorAttribute);
@@ -67,7 +80,6 @@ function setCamaraBuffers() {
     let cameraPos = revolution.polarToCart(camera.radius, phi, theta)
     var u_camera_pos = gl.getUniformLocation(glProgram, "vCamera")
     gl.uniform3fv(u_camera_pos, cameraPos)
-
 }
 
 function setLightBuffers() {
@@ -79,4 +91,27 @@ function setLightBuffers() {
         let unifIe = gl.getUniformLocation(glProgram, "Ie" + (i+1))
         gl.uniform3fv(unifIe, lights[i].spectral)
     }
+}
+
+function setUniformLocations() {
+    let glTexture = gl.createTexture()
+    let img = new Image()
+    img.crossOrigin = "anonymous"
+
+    img.onload = function() {
+        glTexture = gl.createTexture();
+        //gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+        gl.bindTexture(gl.TEXTURE_2D, glTexture);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+        //gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        //gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST);
+        gl.generateMipmap(gl.TEXTURE_2D);
+        gl.bindTexture(gl.TEXTURE_2D, null);
+    }
+    img.src = "maps/crema.jpg"
+
+    let samplerUniform = gl.getUniformLocation(glProgram, "flavor");
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, glTexture);
+    gl.uniform1i(samplerUniform, 0);
 }

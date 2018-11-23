@@ -5,7 +5,7 @@ Bakery.EdgeCylinder = function(height) {
     Revolution.Object3D.call(this);
 
 
-    var RADIUS = 0.025
+    var RADIUS = 0.03
 
     function buildOutline(height) {
     	let h = 9/10*height
@@ -17,6 +17,7 @@ Bakery.EdgeCylinder = function(height) {
     }
 
     this.build = function() {
+        this.height = height
     	var outline = buildOutline(height)
     	var c = new Revolution.RevolutionSweep(outline).build()
     	c.translate([-RADIUS,0,0])

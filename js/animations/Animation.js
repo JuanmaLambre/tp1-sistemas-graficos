@@ -4,24 +4,26 @@ class Animation {
         this.t = 0
         this.duration = duration
         this.paused = false
-        this.transformations = {
-            translation: [0,0,0],
-            rotation: {
-                angle: 0,
-                axis: [1,0,0]
-            },
-            scale: [1,1,1]
-        }
+        this.transformation = new Transformation()
+        this.marked = false
         if (retObj && callbackStr) this.callback = {
             obj: retObj,
             method: callbackStr
         }
     }
 
+    static pauseAll() {
+        this.allPaused = true
+    }
+
+    static playAll() {
+        this.allPaused = false
+    }
+
     advance() {
-        if (!this.paused) {
+        if (!this.paused && !Animation.allPaused) {
             this.t += 1/FPS
-            if (this.callback && this.t >= this.duration) {
+            if (this.callback && !this.isActive()) {
                 this.callback.obj[this.callback.method]()
                 this.callback = null
             }
@@ -33,48 +35,80 @@ class Animation {
         return Math.round(this.t*10000)/10000 < this.duration
     }
 
+    isRunning() {
+        return this.isActive() && this.marked && !this.paused && !Animation.allPaused
+    }
+
     scale(unit) {
-        if (typeof(unit) === "number") this.scale(Array(3).fill(unit))
-        else this.transformations.scale = unit
+        this.transformation.scale(unit)
     }
 
     rotate(angle, axis) {
-        this.transformations.rotation = {
-            angle: angle,
-            axis: axis
-        }
+        this.transformation.rotate(angle, axis)
     }
 
     translate(delta) {
-        this.transformations.translation = delta
+        this.transformation.translate(delta)
     }
 
-    get transformation() {
+    matrix() {
         let transf = mat4.create()
-        if (this.duration > 0 && this.isActive()) {
-            mat4.mul(transf, this._getRotationMat(), transf)
-            //mat4.mul(transf, this._getScaleMat(), transf)
+        if (this.duration > 0) {
             mat4.mul(transf, this._getTranslationMat(), transf)
+            mat4.mul(transf, this._getScaleMat(), transf)
+            mat4.mul(transf, this._getRotationMat(), transf)
         }
         return transf
     }
 
+    get stepTransformation() {
+        let t = new Transformation()
+        t.scale(this._getStepScale())
+        for (let i = 0; i < this.transformation.rotations.length; ++i) {
+            let r = this._getStepRotation(this.transformation.rotations[i])
+            t.rotate(r.angle, r.axis)
+        }
+        t.translate(this._getStepTranslation())
+        return t
+    }
+
     _getRotationMat() {
         let r = mat4.create()
-        let vals = this.transformations.rotation
-        return mat4.rotate(r, r, vals.angle/FPS/this.duration, vals.axis)
+        for (let i = 0; i < this.transformation.rotations.length; ++i) {
+            let rot = this._getStepRotation(this.transformation.rotations[i])
+            mat4.rotate(r, r, rot.angle, rot.axis)
+        }
+        return r
     }
 
     _getScaleMat() {
         let s = mat4.create()
-        let trans = this.transformations.scale.map((v) => {return v/FPS/this.duration})
-        return mat4.scale(s, s, trans)
+        let v = this._getStepScale()
+        return mat4.scale(s, s, v)
     }
 
     _getTranslationMat() {
         let t = mat4.create()
-        let trans = this.transformations.translation.map((v) => {return v/FPS/this.duration})
-        return mat4.translate(t, t, trans)
+        return mat4.translate(t, t, this._getStepTranslation())
+    }
+
+    _getStepScale() {
+        let ratio = 1 + 1/FPS/(this.duration+this.t)
+        let v = revolution.sum(this.transformation.scalation, [-1,-1,-1])
+        return revolution.sum(revolution.scalar(ratio, v), [1,1,1])
+    }
+
+    _getStepTranslation() {
+        return this.transformation.translation.map((v) => {
+            return v/FPS/this.duration
+        })
+    }
+
+    _getStepRotation(rotation) {
+        return {
+            angle: rotation.angle/FPS/this.duration,
+            axis: rotation.axis
+        }
     }
 
 }

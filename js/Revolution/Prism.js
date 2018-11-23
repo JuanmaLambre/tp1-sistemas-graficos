@@ -8,6 +8,14 @@ Revolution.Prism = function(width, height, depth) {
         return [0,1,2,3,6,7,4,5,0,1,1,5,3,7,7,6,6,2,4,0]
     }
 
+    function buildTexture() {
+        return [
+            [0,0],[0,0.25],[0,0.75],[0,0.5],
+            [1,0],[1,0.25],[1,0.75],[1,0.5]
+        ]
+    }
+
+
     this.build = function() {
         var square = [
             [-width/2, height/2],
@@ -29,6 +37,7 @@ Revolution.Prism = function(width, height, depth) {
             var l = 1/Math.sqrt(3)
             return [xSign*l, ySign*l, zSign*l]
         })
+        this.texture = buildTexture()
 
         return this
     }

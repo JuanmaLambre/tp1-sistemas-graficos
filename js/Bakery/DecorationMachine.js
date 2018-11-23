@@ -24,20 +24,35 @@ Bakery.DecorationMachine = function(decoration) {
         pedestal.setColor([0.5,0.2,0.7])
         this.add(pedestal)
 
-        let decoObj = buildDecoration(decoration)
-        decoObj.translate([-3.5,4,0])
-        this.add(decoObj)
+        this.generateDecoration()
 
         let beam = new Revolution.Prism(5, 1/4, 1.5).build()
         beam.translate([-1.5,8,0])
         beam.setColor([0.3,0,0.5])
-        //this.add(beam)
+        this.add(beam)
 
         this.arm = new Bakery.DecorationArm().build()
         this.arm.translate([-3.5,0,0])
         this.add(this.arm)
 
         return this
+    }
+
+    this.generateDecoration = function() {
+        let decoObj = buildDecoration(decoration)
+        decoObj.translate([-3.5,4,0])
+        decoObj.setName("decoration")
+        this.add(decoObj)
+    }
+
+    this.delegateDecoration = function() {
+        let deco = this.remove("decoration")
+        deco.translate([3.5,1.6,0])
+        this.arm.add(deco)
+    }
+
+    this.leaveDecoration = function() {
+        this.arm.remove("decoration")
     }
 
     this.setArmAnimation = function(anim) {
