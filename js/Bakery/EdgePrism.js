@@ -1,27 +1,18 @@
-(function(Bakery, Revolution) {
+class EdgePrism extends Object3D {
 
-Bakery.EdgePrism = function(height) {
+    static get DEPTH() { return 0.03 }
 
-    Revolution.Object3D.call(this);
-
-
-    var DEPTH = 0.03
-
-    this.build = function() {
+    constructor(height) {
+        super()
         this.height = height
-        var e = new Revolution.Prism(2*DEPTH, height, DEPTH).build()
-        e.translate([0,height/2,-DEPTH/2])
+
+        var e = new Prism(2*EdgePrism.DEPTH, height, EdgePrism.DEPTH)
+        e.translate([0,height/2,-EdgePrism.DEPTH/2])
         e.rotate(Math.PI/2, [0,1,0])
-        e.setColor([0.7,0.7,0.9])
+        e.setColor("fdf5e6")
         this.add(e)
 
         return this
     }
 
 }
-
-var copyOfParent = Object.create(Revolution.Object3D.prototype); 
-copyOfParent.constructor = Bakery.EdgePrism;
-Bakery.EdgePrism.prototype = copyOfParent;
-
-}(window.Bakery = window.Bakery || {}, window.Revolution))

@@ -1,34 +1,35 @@
-(function(Revolution) {
-    
-Revolution.Object3D = function() {
+class Object3D extends Drawing {
 
-    this.transformation = new Transformation()
-    this.children = []
-    this.animation = null
-    this.center = [0,0,0]
+    constructor() {
+        super()
+        this.transformation = new Transformation()
+        this.children = []
+        this.animation = null
+        this.glossiness = 0
+    }
 
 
-    function applyChildren(children, funcName, ...args) {
+    _applyChildren(children, funcName, ...args) {
         for (var i = 0; i < children.length; ++i) {
             children[i][funcName](...args)
         }
     }
 
 
-    this.setName = function(name) {
+    setName(name) {
         this.name = name
     }
 
-    this.getName = function() {
+    getName() {
         return this.name
     }
 
-    this.add = function(obj) {
+    add(obj) {
         if (!this.children) this.children = [];
         this.children.push(obj);
     }
 
-    this.remove = function(objName) {
+    remove(objName) {
         for (var i = 0; i < this.children.length; i++) {
             if (this.children[i].getName() == objName)
                 return this.children.splice(i,1)[0]
@@ -36,7 +37,7 @@ Revolution.Object3D = function() {
         return null
     }
 
-    this.getChild = function(name) {
+    getChild(name) {
         for (var i = 0; i < this.children.length; i++) {
             if (this.children[i].getName() == name)
                 return this.children[i]
@@ -44,105 +45,123 @@ Revolution.Object3D = function() {
         return null
     }
 
-    this.setAnimation = function(anim) {
+    setAnimation(anim) {
         this.animation = anim
     }
 
-    this.scale = function(unit) {
+    scale(unit) {
         if (typeof(unit) === "number") this.scale([unit,unit,unit])
         else this.transformation.scale(unit)
     }
 
-    this.rotate = function(angle, axis) {
+    rotate(angle, axis) {
         this.transformation.rotate(angle, axis)
     }
 
-    this.translate = function(delta) {
+    translate(delta) {
         this.transformation.translate(delta)
-        this.center = revolution.sum(this.center, delta)
     }
 
-    this.setColor = function(color) {
+    setColor(color) {
+        if (typeof color == "string")
+            color = [
+                parseInt(color.slice(0,2), 16)/256, 
+                parseInt(color.slice(2,4), 16)/256, 
+                parseInt(color.slice(4,6), 16)/256
+            ]
         if (this.position) {
             this.color = this.position.map((x) => {return color})
         }
-        applyChildren(this.children, "setColor", color)
+        this._applyChildren(this.children, "setColor", color)
+        this.setupWebGLBuffers()
     }
 
-    this.loadTexture = function(filename, name) {
-        this.glTextureName = name
-        let img = new Image()
-        img.crossOrigin = "anonymous"
-        img.onload = function() {
-            this.glTexture = gl.createTexture();
-            //gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-            gl.bindTexture(gl.TEXTURE_2D, this.glTexture);
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
-            //gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-            //gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST);
+    loadTexture(filename, mode = Drawing.TEXTURE_MODE.STRECH) {
+        if (!this.texture) 
+            throw "No texture defined for texture loading"
+        this.textureMode = mode
+        this.glTexture = gl.createTexture();
+        this.glTexture.image = new Image()
+        var self = this
+        this.glTexture.image.onload = function() {
+            gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+            gl.bindTexture(gl.TEXTURE_2D, self.glTexture);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, self.glTexture.image);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST);
             gl.generateMipmap(gl.TEXTURE_2D);
             gl.bindTexture(gl.TEXTURE_2D, null);
         }
-        img.src = filename
+        this.glTexture.image.src = filename
     }
 
-    this.hasTexture = function() {
+    loadReflection(filename) {
+        if (!this.texture) 
+            throw "No texture defined for reflection loading"
+        this.glReflection = gl.createTexture()
+        this.glReflection.image = new Image()
+        var self = this
+        this.glReflection.image.onload = function() {
+            gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+            gl.bindTexture(gl.TEXTURE_2D, self.glReflection);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, self.glReflection.image);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST);
+            gl.generateMipmap(gl.TEXTURE_2D);
+            gl.bindTexture(gl.TEXTURE_2D, null);
+        }
+        this.glReflection.image.src = filename
+    }
+
+    hasTexture() {
         return this.glTexture != null
     }
 
-    this.getPositionBuffer = function(from = mat4.create()) {
-        if (!this.position) {
-            return []
-        } else {
-            let trans = mat4.create();
-            mat4.multiply(trans, from, this.getTransformation())
-            return this.position.reduce((buffer, point) => {
-                let res = vec4.create(), p = vec4.clone(point.concat(1));
-                mat4.multiply(res, trans, p)
-                buffer.push(res[0])
-                buffer.push(res[1])
-                buffer.push(res[2])
-                return buffer
-            }, [])
-        }
+    hasReflection() {
+        return this.glReflection != null
     }
 
-    this.getIndexBuffer = function() {
+    getPositionBuffer() {
+        return revolution.flatten(this.position || [], 2)
+    }
+
+    getIndexBuffer() {
         return this.index || [];
     }
 
-    this.getColorBuffer = function() {
+    getColorBuffer() {
         return revolution.flatten(this.color || [], 1);
     }
 
-    this.getTransformation = function() {
+    getTransformation() {
         return this.transformation.matrix()
     }
 
-    this.getNormalBuffer = function(from = mat4.create()) {
-        if (!this.normal) {
-            return []
-        } else {
-            return revolution.flatten(
-                this.normal.map((p) => {
-                    let res = vec4.create()
-                    mat4.multiply(res, from, p.concat([1]))
-                    return revolution.normalize(res.slice(0,3))
-                }), 2)
-        }
+    getNormalBuffer() {
+        return revolution.flatten(this.normal || [], 2)
     }
 
-    this.getTextureBuffer = function() {
-        return revolution.flatten(
-            this.texture || this.position.map((v) => {
-                let x = revolution.normalize(v.slice(0,2))
-                return isNaN(x[0]) ? [1,1] : x
-            }),
-            2
-        )
+    getTextureBuffer() {
+        return revolution.flatten(this.texture || [], 2)
     }
 
-    this.clone = function(clazz = Revolution.Object3D) {
+    getDrawMode() {
+        return gl.TRIANGLE_STRIP
+    }
+
+    setGlossiness(val) {
+        this.glossiness = val
+    }
+
+    getGlossiness() {
+        return this.glossiness
+    }
+
+    getReflectionIndex() {
+        return 0.1
+    }
+
+    clone(clazz = Object3D) {
         var cp = new clazz()
         cp.transformation = this.transformation.clone()
         if (this.position) cp.position = this.position.slice(0)
@@ -154,10 +173,12 @@ Revolution.Object3D = function() {
             cp.add(this.children[i].clone())
         }
 
+        cp.setupWebGLBuffers()
+
         return cp
     }
 
-    this.advance = function() {
+    advance() {
         this.markAnimation()
 
         if (this.animation && this.animation.isRunning()) {
@@ -166,17 +187,26 @@ Revolution.Object3D = function() {
             this.transformation.apply(anim.stepTransformation)
         }
 
-        for (let i = 0; i < this.children.length; ++i) {
-            this.children[i].advance()
-        }
+        if (this.onAdvance) this.onAdvance()
+
+        this._applyChildren(this.children, "advance")
     }
 
-    this.markAnimation = function() {
+    markAnimation() {
         if (this.animation) this.animation.marked = true
-        for (let i = 0; i < this.children.length; ++i)
-            this.children[i].markAnimation()
+        this._applyChildren(this.children, "markAnimation")
     }
-        
+
+    setupWebGLBuffers() { 
+        super.setupWebGLBuffers()
+        this._applyChildren(this.children, "setupWebGLBuffers")
+    }
+
+    draw(trans = mat4.create()) {
+        super.draw(trans)
+        let newTrans = this.transformation.matrix()
+        mat4.mul(newTrans, trans, newTrans)
+        this._applyChildren(this.children, "draw", newTrans)
+    }
+
 }
-    
-}(window.Revolution = window.Revolution || {}))

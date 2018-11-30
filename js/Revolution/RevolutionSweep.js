@@ -1,11 +1,6 @@
-(function(Revolution) { 
-    
-Revolution.RevolutionSweep = function(outline, opts={}) {
+class RevolutionSweep extends Object3D {
 
-    Revolution.Object3D.call(this);
-
-
-    function buildNormals(outline) {
+    _buildNormals(outline) {
         return outline.map((point,i) => {
             var tg = revolution.minus(
                 i == 0 ? point : outline[i-1],
@@ -15,36 +10,31 @@ Revolution.RevolutionSweep = function(outline, opts={}) {
         })
     }
 
-    this.build = function() {
+    constructor(outline, opts = {}) {
+        super()
         var {
             steps = 32,
             axis = [0,1,0]
         } = opts
 
         let grid = revolution.revolve(outline, Math.PI*2/steps, {axis:axis})
+        grid.push(outline)
         this.texture = grid.map((outline, i) => {
             return outline.map((x,j) => {
-                return [i/grid.length, j/outline.length]
+                return [i/(grid.length-1), j/outline.length]
             })
         })
         this.texture = revolution.flattenGrid(this.texture)
         this.position = revolution.flattenGrid(grid)
-        this.index = revolution.meshIndex(steps, outline.length, {close:true})
-        this.color = this.position.map((x,i) => {
-            return [1,1,0].map((c) => {return Math.random()*c} )
-        })
+        this.index = revolution.meshIndex(steps+1, outline.length, {close:true})
+        this.setColor([1,1,0])
 
-        let normalOutline = buildNormals(outline)
+        let normalOutline = this._buildNormals(outline)
         this.normal = revolution.revolve(normalOutline, Math.PI*2/steps, {axis:axis})
+        this.normal.push(normalOutline)
         this.normal = revolution.flattenGrid(this.normal)
 
-        return this
+        this.setupWebGLBuffers()
     }
 
 }
-
-var copyOfParent = Object.create(Revolution.Object3D.prototype); 
-copyOfParent.constructor = Revolution.RevolutionSweep;
-Revolution.RevolutionSweep.prototype = copyOfParent;
-    
-}(window.Revolution = window.Revolution || {}))

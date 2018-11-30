@@ -9,6 +9,7 @@ function setOrthographic(axis) {
     camera.perspective = false
     camera.orthographic = true
     camera.translation = [0,0,0]
+    camera.followCake = false
 
     switch (axis.toLowerCase()) {
         case "x":
@@ -63,19 +64,22 @@ $("body").on("keydown", (e) => {
         camera.radius /= 9/10
     } else if ((key == "A" || key == "D") && camera.perspective) {
         let phi = -camera.alpha - Math.PI/2, theta = Math.PI/2 - camera.rho
-        var viewVec = revolution.polarToCart(camera.radius, phi, theta)
-        var planeVec = revolution.polarToCart(camera.radius, phi, theta+1)
-        var norm = revolution.normalize(revolution.cross_prod(planeVec, viewVec))
-        var side = key == "A" ? -1 : 1
-        camera.translation = revolution.sum(camera.translation, revolution.scalar(side, norm))
+        let viewVec = revolution.polarToCart(camera.radius, phi, theta)
+        let planeVec = revolution.polarToCart(camera.radius, phi, theta+1)
+        let norm = revolution.normalize(revolution.cross_prod(planeVec, viewVec))
+        let scale = 0.5 * (key == "A" ? -1 : 1)
+        camera.translation = revolution.sum(camera.translation, revolution.scalar(scale, norm))
     } else if (key == "1") {
         setDefaultPerspective()
+        camera.followCake = false
     } else if (key == "2") {
         setDefaultPerspective()
         camera.translation = [0,-4,-4]
+        camera.followCake = false 
     } else if (key == "3") {
         setDefaultPerspective()
         camera.translation = [0,-4,-12]
+        camera.followCake = false
     } else if (key == "4") {
         setOrthographic("x")
     } else if (key == "5") {

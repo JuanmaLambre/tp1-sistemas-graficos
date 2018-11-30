@@ -1,7 +1,7 @@
 class EdgeAnimations {
         
     constructor(machine, count) {
-        this.DISTANCE = [0.47,0,0]
+        this.distance = [0,0,0]
         this.machine = machine
         this.counter = 0
         this.edges = count
@@ -13,6 +13,7 @@ class EdgeAnimations {
             method: method
         }
         this.cake = cake
+        this.distance = [1.5-cake.radius,0,0]
         this._startDecoration()
     }
 
@@ -23,7 +24,7 @@ class EdgeAnimations {
     _moveArm() {
         let anim = new Animation(0.5, this, "_leaveEdge")
         anim._debug = "move edge arm"
-        anim.translate(this.DISTANCE)
+        anim.translate(this.distance)
         this.machine.setArmAnimation(anim)
     }
 
@@ -34,7 +35,7 @@ class EdgeAnimations {
     }
 
     _restoreArm() {
-        let inverse = this.DISTANCE.map((v) => {return -v})
+        let inverse = this.distance.map((v) => {return -v})
         let anim = new Animation(0.5, this, "_rotateCake")
         anim.translate(inverse)
         this.machine.setArmAnimation(anim)

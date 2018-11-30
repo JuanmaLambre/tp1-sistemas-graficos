@@ -1,11 +1,7 @@
-(function(Revolution) {
-    
-Revolution.TwistSweep = function(outline, radius, twists, opts={}) {
+class TwistSweep extends Object3D {
 
-    Revolution.Object3D.call(this);
-
-
-    this.build = function() {
+    constructor(outline, radius, twists, opts={}) {
+        super()
         var {
             steps = 32,
             angle = 2*Math.PI,
@@ -19,15 +15,11 @@ Revolution.TwistSweep = function(outline, radius, twists, opts={}) {
             return revolution.normalize(x)
         })
         this.normal = revolution.revolve_twisted(outline, 0, twists, angle/steps, {angle:angle})
-        this.normal = revolution.flattenGrid(this.normal)
+        this.normal = revolution.flattenGrid(this.normal).map((n) => {
+            return revolution.normalize(n)
+        })
 
-        return this
+        this.setupWebGLBuffers()
     }
 
 }
-
-var copyOfParent = Object.create(Revolution.Object3D.prototype); 
-copyOfParent.constructor = Revolution.TwistSweep;
-Revolution.TwistSweep.prototype = copyOfParent;
-    
-}(window.Revolution = window.Revolution || {}))

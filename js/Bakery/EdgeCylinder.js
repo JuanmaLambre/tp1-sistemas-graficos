@@ -1,36 +1,27 @@
-(function(Bakery, Revolution) {
+class EdgeCylinder extends Object3D {
 
-Bakery.EdgeCylinder = function(height) {
+    static get RADIUS() { return 0.03 }
 
-    Revolution.Object3D.call(this);
-
-
-    var RADIUS = 0.03
-
-    function buildOutline(height) {
-    	let h = 9/10*height
-    	let r = 2/3*RADIUS
+    _buildOutline() {
+    	let h = 9/10*this.height
+    	let r = 2/3*EdgeCylinder.RADIUS
     	return [
-    		[0,h,0], [-r,h,0], [-r,height,0], [-RADIUS,height,0],
-    		[-RADIUS,0,0], [-r,0,0], [-r,height-h,0], [0,height-h,0]
+    		[0,h,0], [-r,h,0], [-r,this.height,0], [-EdgeCylinder.RADIUS,this.height,0],
+    		[-EdgeCylinder.RADIUS,0,0], [-r,0,0], [-r,this.height-h,0], [0,this.height-h,0]
     	]
     }
 
-    this.build = function() {
+    constructor(height) {
+        super()
         this.height = height
-    	var outline = buildOutline(height)
-    	var c = new Revolution.RevolutionSweep(outline).build()
-    	c.translate([-RADIUS,0,0])
-    	c.setColor([0.9,0.2,0.7])
-    	this.add(c)
 
-        return this
+    	var outline = this._buildOutline(height)
+    	var c = new RevolutionSweep(outline)
+    	//c.translate([-EdgeCylinder.RADIUS,0,0])
+    	c.setColor([0.9,0.2,0.7])
+        c.loadTexture("maps/candy.jpg")
+
+    	this.add(c)
     }
 
 }
-
-var copyOfParent = Object.create(Revolution.Object3D.prototype); 
-copyOfParent.constructor = Bakery.EdgeCylinder;
-Bakery.EdgeCylinder.prototype = copyOfParent;
-
-}(window.Bakery = window.Bakery || {}, window.Revolution))

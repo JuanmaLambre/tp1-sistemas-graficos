@@ -1,17 +1,13 @@
-(function(Revolution) {
-    
-Revolution.ConvexSweep = function(outline, init, end, opts={}) {
+class ConvexSweep extends Object3D {
 
-    Revolution.Object3D.call(this);
-
-
-    function average(points) {
+    _average(points) {
         return points[0].map((aux,i) => {
             return points.reduce((acum,x) => {return acum+x[i]}, 0) * 1.0/points.length
         })
     }
         
-    this.build = function() {
+    constructor(outline, init, end, opts={}) {
+        super()
         var { 
             scale = (x) => {return [1,1,1]},
             twist = (i) => {return 0},
@@ -28,8 +24,8 @@ Revolution.ConvexSweep = function(outline, init, end, opts={}) {
 
         if (cover) {
             // Add the middle point of the cover to the position buffer
-            this.position.push(average(sweep[0]));
-            this.position.push(average(sweep[sweep.length-1]));
+            this.position.push(this._average(sweep[0]));
+            this.position.push(this._average(sweep[sweep.length-1]));
             var last = this.position.length - 1
             
             // Add the middle points of the cover to the index buffer
@@ -47,13 +43,7 @@ Revolution.ConvexSweep = function(outline, init, end, opts={}) {
         this.setColor([0.7,0.3,0.5])
         this.normal = this.position.slice(0)
 
-        return this
+        this.setupWebGLBuffers()
     }
 
 }
-
-var copyOfParent = Object.create(Revolution.Object3D.prototype); 
-copyOfParent.constructor = Revolution.ConvexSweep;
-Revolution.ConvexSweep.prototype = copyOfParent;
-    
-}(window.Revolution = window.Revolution || {}))
