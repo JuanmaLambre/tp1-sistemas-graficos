@@ -1,51 +1,43 @@
-(function(Bakery, Revolution) {
+class EdgeMachine extends Object3D {
 
-Bakery.EdgeMachine = function(edge, height) {
-
-    Revolution.Object3D.call(this);
-
-
-    function buildEdge(edge, height) {
-        switch(edge) {
-            case "cylinder": return new Bakery.EdgeCylinder(height).build()
-            case "prism": return new Bakery.EdgePrism(height).build()
-            default: throw "Unknown edge: " + edge
+    _buildEdge() {
+        switch(this.edge) {
+            case "cylinder": return new EdgeCylinder(this.height*1.1)
+            case "prism": return new EdgePrism(this.height*1.1)
+            default: throw "Unknown edge: " + this.edge
         }
     }
 
 
-    this.build = function() {
-        var support = new Revolution.Prism(1, 6, 1).build()
+    constructor(edge, height) {
+        super()
+        this.edge = edge
+        this.height = height
+
+        var support = new Prism(1, 6, 1)
         support.translate([-2.5,3,0])
         support.setColor([0.7,0.4,0.9])
         this.add(support)
 
-        this.arm = new Bakery.EdgeArm().build()
+        this.arm = new EdgeArm()
         this.arm.translate([-0.5,0,0])
         this.add(this.arm)
         
         this.generateEdge()
-
-        return this
     }
 
-    this.generateEdge = function() {
-        let edgeDeco = buildEdge(edge, height*1.1)
+    generateEdge() {
+        let edgeDeco = this._buildEdge()
+        edgeDeco.rotate(Math.PI, [0,1,0])
         this.arm.addEdge(edgeDeco)
     }
 
-    this.removeEdge = function() {
+    removeEdge() {
         return this.arm.removeEdge()
     }
 
-    this.setArmAnimation = function(anim) {
+    setArmAnimation(anim) {
         this.arm.setAnimation(anim)
     }
 
 }
-
-var copyOfParent = Object.create(Revolution.Object3D.prototype); 
-copyOfParent.constructor = Bakery.EdgeMachine;
-Bakery.EdgeMachine.prototype = copyOfParent;
-
-}(window.Bakery = window.Bakery || {}, window.Revolution))

@@ -117,12 +117,10 @@ revolution.angle = function(v1, v2) {
 }
 
 function range(x, y) {
-    var ret = [];
-    for (var i = x; i < y; i++) {
-        ret.push(i);
-    }
-    return ret;
+    return Array.apply(null, {length:y-x}).map(Number.call, (i) => {return i+x})
 }
+
+revolution.range = range
 
 /*
 https://math.stackexchange.com/questions/180418/calculate-rotation-matrix-to-align-vector-a-to-vector-b-in-3d
@@ -421,11 +419,13 @@ revolution.buildBSpline2 = function(control, steps=16) {
     if (control.length < 3) {
         throw "Not enough control points for cuadratic B-Spline"
     }
-    var res = []
-    for (var i = 2; i < control.length; ++i) {
-        res = res.concat(bspline2(control.slice(i-2, i+1), steps))
+    let res = [], last
+    for (let i = 2; i < control.length; ++i) {
+        let pts = bspline2(control.slice(i-2, i+1), steps)
+        res = res.concat(pts.slice(0,-1))
+        last = pts[pts.length-1]
     }
-    return res
+    return res.concat([last])
 }
 
 /** In 3D space. Phi is the angle to the x-axis, and theta to the y-axis
@@ -436,6 +436,14 @@ revolution.polarToCart = function(radius, phi, theta) {
         radius*Math.cos(theta),
         -radius*Math.sin(phi)*Math.sin(theta)
     ]
+}
+
+revolution.averagePoint = function(outline) {
+    let sum = outline.reduce((total, p) => {
+        return revolution.sum(total, p)
+    }, Array.apply(null, {length:outline[0].length}).map((i) => {return 0}))
+
+    return sum.map((i) => { return i/outline.length })
 }
 
 }(window.revolution = window.revolution || {}))

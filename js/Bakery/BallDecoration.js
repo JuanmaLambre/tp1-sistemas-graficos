@@ -1,25 +1,19 @@
-(function(Bakery, Revolution) {
+class BallDecoration extends Object3D {
 
-Bakery.BallDecoration = function() {
-
-    Revolution.Object3D.call(this);
+    static get RADIUS() { return 0.07 }
 
 
-    var RADIUS = 0.07
-
-    this.build = function() {
-        var sphere = new Revolution.Sphere({radius:RADIUS}).build()
+    constructor() {
+        super()
+        var sphere = new Sphere({radius:BallDecoration.RADIUS})
         sphere.setColor([0.9,0.3,0.3])
         sphere.translate([0,0.03,0])
 
         this.add(sphere)
-        return this
+    }
+
+    getGlossiness() {
+    	return 0
     }
 
 }
-
-var copyOfParent = Object.create(Revolution.Object3D.prototype); 
-copyOfParent.constructor = Bakery.BallDecoration;
-Bakery.BallDecoration.prototype = copyOfParent;
-
-}(window.Bakery = window.Bakery || {}, window.Revolution))

@@ -1,3 +1,8 @@
+var SHADERS = {
+    fragment: {},
+    vertex: {}
+}
+
 function getShader(gl, id) {
     var shaderScript, src, currentChild, shader;
 
@@ -38,15 +43,15 @@ function getShader(gl, id) {
 
 function initShaders() {
     // Obtenemos los shaders ya compilados
-    var fragmentShader = getShader(gl, "shader-fs");
-    var vertexShader = getShader(gl, "shader-vs");
+    SHADERS.fragment.default = getShader(gl, "shader-fs");
+    SHADERS.vertex.default = getShader(gl, "shader-vs");
 
     // Creamos un programa de shaders de WebGL.
     glProgram = gl.createProgram();
 
     // Asociamos cada shader compilado al programa.
-    gl.attachShader(glProgram, vertexShader);
-    gl.attachShader(glProgram, fragmentShader);
+    gl.attachShader(glProgram, SHADERS.vertex.default);
+    gl.attachShader(glProgram, SHADERS.fragment.default);
 
     // Linkeamos los shaders para generar el programa ejecutable.
     gl.linkProgram(glProgram);

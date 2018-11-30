@@ -19,7 +19,7 @@ class Light {
     }
 
     get spectral() {
-        return [1,1,1]
+        return this._color
     }
 
     set color(c) {

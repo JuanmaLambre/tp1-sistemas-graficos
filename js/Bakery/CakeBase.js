@@ -1,27 +1,48 @@
-(function(Bakery, Revolution) {
+class CakeBase extends Object3D {
 
-Bakery.CakeBase = function(params = {}) {
-
-    Revolution.Object3D.call(this);
-
-    var DEFAULT_HEIGHT = 0.7
-    var FLAVOR_FILENAMES = {
-        "cream": "maps/crema.jpg",
-        "chocolate": "maps/chocolate.jpg"
+    static get DEFAULT_HEIGHT() { return 0.7 }
+    static get FLAVOR_FILENAMES() { 
+        return {
+            "cream": "maps/crema.jpg",
+            "chocolate": "maps/chocolate.jpg"
+        }
     }
 
-    function buildPoints(params) {
-        var {
+    constructor(params) {
+        super()
+        this.height = params.height
+
+        let control = this._buildControlPoints(params)
+        let points = revolution.buildBSpline2(control, 8)
+
+        let obj = new RevolutionSweep(points)
+        obj.setGlossiness(100)
+        obj.setName("base")
+        this.add(obj)
+        this.setColor([0.8,0.8,0.1])
+    }
+
+    setFlavor(flavor) {
+        this.getChild("base").loadTexture(CakeBase.FLAVOR_FILENAMES[flavor])
+    }
+
+    getHeight() {
+        return this.height || CakeBase.DEFAULT_HEIGHT
+    }
+
+
+    _buildControlPoints(params) {
+        let {
             floors = 3,
             waveWidth = 0.125,
             radius = 1,
-            height = DEFAULT_HEIGHT
+            height = CakeBase.DEFAULT_HEIGHT
         } = params
 
-        var points = [[0,height,0],[0,height,0],[-radius+waveWidth,height,0]]
-        var yDelta = height/(2*floors)
+        let points = [[0,height,0],[0,height,0],[-radius+waveWidth,height,0]]
+        let yDelta = height/(2*floors)
 
-        for (var i = 0; i < floors; ++i) {
+        for (let i = 0; i < floors; ++i) {
             points.push([-radius,height-(i*2+1)*yDelta,0])
             points.push([-radius+waveWidth,height-(i*2+2)*yDelta,0])
         }
@@ -29,29 +50,4 @@ Bakery.CakeBase = function(params = {}) {
         return points.concat([[0,0,0],[0,0,0]])
     }
 
-    this.build = function() {
-        var control = buildPoints(params)
-
-        let obj = new Revolution.RevolutionSweep(revolution.buildBSpline2(control, 8)).build()
-        this.add(obj)
-        this.setColor([0.8,0.8,0.1])
-
-        return this
-    }
-
-    this.setFlavor = function(flavor) {
-        //this.children[0].loadTexture(FLAVOR_FILENAMES[flavor], "flavor")
-        this.children[0].setName("base")
-    }
-
-    this.getHeight = function() {
-        return params.height || DEFAULT_HEIGHT
-    }
-
 }
-
-var copyOfParent = Object.create(Revolution.Object3D.prototype); 
-copyOfParent.constructor = Bakery.CakeBase;
-Bakery.CakeBase.prototype = copyOfParent;
-
-}(window.Bakery = window.Bakery || {}, window.Revolution))

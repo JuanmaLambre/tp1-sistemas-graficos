@@ -1,17 +1,15 @@
-(function(Revolution) {
+class Axis extends Object3D {
 
-Revolution.Axis = function(scale = 1) {
+    constructor(scale = 1) {
+        super()
+        
+        var xAxis = new Cylinder();
+        var yAxis = new Cylinder();
+        var zAxis = new Cylinder();
 
-    Revolution.Object3D.call(this);
-
-    this.build = function() {
-        var xAxis = new Revolution.Cylinder().build();
-        var yAxis = new Revolution.Cylinder().build();
-        var zAxis = new Revolution.Cylinder().build();
-
-        xAxis._debug = "x"
-        yAxis._debug = "y"
-        zAxis._debug = "z"
+        xAxis.name = "x"
+        yAxis.name = "y"
+        zAxis.name = "z"
 
         xAxis.setColor([1,0,0])
         yAxis.setColor([0,1,0])
@@ -31,14 +29,6 @@ Revolution.Axis = function(scale = 1) {
         this.add(xAxis);
         this.add(yAxis);
         this.add(zAxis);
-
-        return this
     }
 
 }
-
-var copyOfParent = Object.create(Revolution.Object3D.prototype); 
-copyOfParent.constructor = Revolution.Axis;
-Revolution.Axis.prototype = copyOfParent;
-
-}(window.Revolution = window.Revolution || {}))

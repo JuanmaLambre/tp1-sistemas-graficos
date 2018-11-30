@@ -1,62 +1,42 @@
-(function(Revolution) {
-    
-Revolution.StraightSweep = function(outline, init, end, opts={}) {
+class StraightSweep extends Object3D {
 
-    Revolution.Object3D.call(this);
-
-
-    function average(points) {
+    _average(points) {
         return points[0].map((aux,i) => {
             return points.reduce((acum,x) => {return acum+x[i]}, 0) * 1.0/points.length
         })
     }
-
-    function buildNormal(count, init, end) {
-        var ret = []
-        for (var i = 0; i < count+1; i++) {
-            ret.push(revolution.normalize(revolution.minus(init, end)))
-            ret.push(revolution.normalize(revolution.minus(end, init)))
-        }
-        return ret
-    }
         
-    this.build = function() {
-        var { 
-            cover = true
-        } = opts;
+    constructor(outline, length) {
+        super()
 
-        var sweep = revolution.sweep(outline, init, end, {steps: 1})
-        this.position = revolution.flatten(revolution.transpose(sweep), 1)
-        this.index = revolution.meshIndex(outline.length, 2, {close: true})
+        this.position = this._buildPosition(outline, length)
+        this.index = revolution.meshIndex(2, outline.length, {close: true})
+        this.normal = this._buildNormal(outline)
 
-        if (cover) {
-            // Add the middle point of the cover to the position buffer
-            this.position.push(average(sweep[0]));
-            this.position.push(average(sweep[sweep.length-1]));
-            var last = this.position.length - 1
-            
-            // Add the middle points of the cover to the index buffer
-            for (var i = 0; i < this.index.length; i++) {
-                if (this.index[i] == this.index[i-1]) {
-                    if (this.index[i] % 2 == 1) this.index.splice(i, 0, last)
-                    else this.index.splice(i, 0, last-1)
-                    i++
-                }
-            }
-            this.index.push(last - 1*(outline.length % 2 == 0))
-            this.index = [last-1,0,2].concat(this.index)
-        }
+        let lidfront = new Lid(outline)
+        lidfront.translate([0,0,length/2])
+        this.add(lidfront)
 
-        this.setColor([0.7,0.3,0.5])
-        this.normal = buildNormal(outline.length, init, end)
+        let lidback = new Lid(outline)
+        lidback.rotate(Math.PI, [0,1,0])
+        lidback.translate([0,0,-length/2])
+        this.add(lidback)
 
-        return this
+        this.setColor([0.9,0.9,0.9])
+
+        this.setupWebGLBuffers()
+    }
+
+    _buildNormal(outline) {
+        let normals = outline.map((p) => {
+            return revolution.normalize(p.concat(0))
+        })
+        return normals.concat(normals)
+    }
+
+    _buildPosition(outline, length) {
+        let sweep = revolution.sweep(outline, [0,0,length/2], [0,0,-length/2], {steps:1})
+        return sweep[0].concat(sweep[1])
     }
 
 }
-
-var copyOfParent = Object.create(Revolution.Object3D.prototype); 
-copyOfParent.constructor = Revolution.StraightSweep;
-Revolution.StraightSweep.prototype = copyOfParent;
-    
-}(window.Revolution = window.Revolution || {}))

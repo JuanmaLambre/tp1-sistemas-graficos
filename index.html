@@ -3,7 +3,7 @@
 <meta content="ISO-8859-1" http-equiv="encoding">
 <html>
     <head>
-        <title>66.71 WebGL FrameWork</title>
+        <title>BakeryGL</title>
         <style>
             body{ background-color: grey; }
             canvas{ background-color: white; }
@@ -32,8 +32,11 @@
         <script src="js/interaction.js" type="text/javascript"></script>
 
         <script type="text/javascript" src="js/Revolution/revolution.js"></script>
+        <script type="text/javascript" src="js/Revolution/Drawing.js"></script>
         <script type="text/javascript" src="js/Revolution/Object3D.js"></script>
         <script type="text/javascript" src="js/Revolution/Cylinder.js"></script>
+        <script type="text/javascript" src="js/Revolution/Circle.js"></script>
+        <script type="text/javascript" src="js/Revolution/Lid.js"></script>
         <script type="text/javascript" src="js/Revolution/Sphere.js"></script>
         <script type="text/javascript" src="js/Revolution/Prism.js"></script>
         <script type="text/javascript" src="js/Revolution/ConvexSweep.js"></script>
@@ -47,11 +50,13 @@
         <script type="text/javascript" src="js/Bakery/CakeRing.js"></script>
         <script type="text/javascript" src="js/Bakery/ConeDecoration.js"></script>
         <script type="text/javascript" src="js/Bakery/BallDecoration.js"></script>
-        <script type="text/javascript" src="js/Bakery/FruitDecoration.js"></script>
+        <script type="text/javascript" src="js/Bakery/CookieDecoration.js"></script>
         <script type="text/javascript" src="js/Bakery/EdgeCylinder.js"></script>
         <script type="text/javascript" src="js/Bakery/EdgePrism.js"></script>
         <script type="text/javascript" src="js/Bakery/Plate.js"></script>
+        <script type="text/javascript" src="js/Bakery/Oven.js"></script>
         <script type="text/javascript" src="js/Bakery/Conveyor.js"></script>
+        <script type="text/javascript" src="js/Bakery/ConveyorBelt.js"></script>
         <script type="text/javascript" src="js/Bakery/DecorationMachine.js"></script>
         <script type="text/javascript" src="js/Bakery/DecorationArm.js"></script>
         <script type="text/javascript" src="js/Bakery/EdgeMachine.js"></script>
@@ -68,74 +73,119 @@
             attribute vec3 aVertexPosition;
             attribute vec3 aVertexColor;
             attribute vec3 aVertexNormal;
-            attribute highp vec2 aVertexTexture;
-            attribute highp float glossiness;
+            attribute vec2 aVertexTexture;
 
             // Los uniforms son caracteristicas propias de una etapa de dibujado completa.
-            uniform mat4 uMVMatrix;
+            uniform mat4 uMMatrix;
+            uniform mat4 uVMatrix;
             uniform mat4 uPMatrix;
-            uniform mat4 uMVMatrix_TI;
+            uniform mat4 uNMatrix;
+            uniform vec3 randomvec;
 
             // Los varying toman valor para cada fragmento a partir de la interpolacion
             varying highp vec4 vColor;
             varying highp vec4 vNormal;
             varying highp vec2 vTexture;
+            varying highp vec3 vPosition;
 
             void main(void) {
                 // gl_Position es una variable "built-in" de GLSL que es usada para 
                 // almacenar la posicion resultante del fragmento.
-                gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+                gl_Position = uPMatrix * uVMatrix * uMMatrix * vec4(aVertexPosition, 1.0);
                 vColor = vec4(aVertexColor,1.0);
-                vNormal = vec4(aVertexNormal,1.0);
+                vNormal = uNMatrix * vec4(aVertexNormal,1.0);
                 vTexture = aVertexTexture;
+                vPosition = aVertexPosition;
             }
         </script>
 
         <script id="shader-fs" type="x-shader/x-fragment">
+            #define PI 3.1415926535897932384626433832795
+
             varying highp vec4 vColor;
             varying highp vec4 vNormal;
+            varying highp vec3 vPosition;
 
-            uniform lowp vec3 I1, I2, I3;
-            uniform lowp vec3 Ie1, Ie2, Ie3;
-            uniform lowp vec3 L1, L2, L3;
+            uniform lowp vec3 I[4];
+            uniform lowp vec3 Ie[4];
+            uniform lowp vec3 L[4];
+            uniform highp vec3 vCamera;
+            uniform lowp float uGlossiness;
 
-            lowp vec3 n, k, vCamera;
-            lowp vec3 buf;
-
-            uniform sampler2D flavor;
             varying highp vec2 vTexture;
+            uniform bool uHasTexture;
+            uniform sampler2D uSampler;
+            uniform int uTextureMode;
+
+            uniform bool uHasReflection;
+            uniform sampler2D uReflectionSampler;
+            uniform lowp float uReflectionIndex;
+
+            uniform highp vec3 randomvec;
+            uniform highp float uTime;
+
+            uniform bool uBeltAnimation;
+            uniform lowp float beltOffset;
 
             void main(void) {
-                n = vec3(vNormal);
-                k = vec3(vColor);
+                lowp vec3 n = vec3(vNormal);
+                lowp vec3 k = vec3(vColor);
+                highp vec2 texture = vTexture;
+                highp vec3 finalColor = vec3(0.0, 0.0, 0.0);
 
                 // gl_FragColor es una variable "built-in" de GLSL que es usada para 
                 // almacenar el color resultante del fragmento.
-                gl_FragColor = vec4(
-                    I1*k*(1.0+dot(L1,n)) + Ie1*k*pow(dot(2.0*dot(L1,n)*n - L1, vCamera), 1.0) + 
-                        I2*k*(1.0+dot(L2,n)) + Ie2*k*pow(dot(2.0*dot(L2,n)*n - L2, vCamera), 1.0) +
-                        I3*k*(1.0+dot(L3,n)) + Ie3*k*pow(dot(2.0*dot(L3,n)*n - L3, vCamera), 1.0)
-                    , 1.0);
-                return;
-                highp vec4 textureColor = texture2D(flavor, vTexture);
-                gl_FragColor = vec4(textureColor.rgb, textureColor.a);
+
+                if (uBeltAnimation) {
+                    texture = vec2(vTexture.s - beltOffset, vTexture.t);
+                }
+
+                lowp float relativeLength = 0.3;
+                if (uTextureMode == 1) {
+                    texture.s = fract(texture.s * 1.0/relativeLength);
+                    texture.t = fract(texture.t * 1.0/relativeLength);
+                }
+
+                if (uHasTexture) {
+                    highp vec4 textureColor = texture2D(uSampler, texture);
+                    k = textureColor.rgb;
+                }
+
+                if (uHasReflection) {
+                    highp vec3 ray = reflect(vPosition - vCamera, n);
+                    highp float theta = atan(ray.y/ray.x);
+                    highp float phi = atan(sqrt(ray.x*ray.x+ray.y*ray.y)/ray.z);
+                    highp vec4 reflection = texture2D(uReflectionSampler, vec2(theta/2.0/PI, phi/PI));
+                    k = uReflectionIndex*reflection.rgb + (1.0-uReflectionIndex)*k;
+                }
+                
+                highp vec3 V = normalize(vCamera - vPosition);
+                for (int i = 0; i < 4; i++) {
+                    lowp vec3 lightDir = L[i] - vPosition;
+                    highp vec3 R = normalize(reflect(lightDir, n));
+                    finalColor += I[i]*k*(1.0+dot(lightDir,n)) + Ie[i]*k*pow(dot(R, V), uGlossiness);
+                }
+
+                gl_FragColor = vec4(finalColor, 1.0);
             }
-        </script>
+        </script>        
 
         <script>
             var gl = null,
                 canvas = null,
                 glProgram = null,
-                FPS = 20,
-                scene = new Revolution.Object3D(),
+                FPS = 30,
+                time = 0,
+                BELT_VELOCITY = 5,
+                scene = new Object3D(),
                 lights = [
-                    new Light(0.02).at([0,25,0]),
-                    new Light(0.02).at([25,15,0]),
+                    new Light(0.03).at([0,25,0]),
+                    new Light(0.03).at([25,0,0]),
                     new Light(0.02).at([0,15,25])
                 ]
 
-            var mvMatrix = mat4.create();
             var pMatrix = mat4.create();
+            var vMatrix = mat4.create();
 
             var params = {
                 cake: {
@@ -145,10 +195,11 @@
                     waveWidth: 0.125,
                     ringTwists: 4,
                     waveWidth: 0.125,
-                    decoration: "ball",
+                    decoration: "cookie",
                     decorationsCount: 5,
-                    edge: "cylinder",
-                    edgesCount: 8
+                    edge: "prism",
+                    edgesCount: 8,
+                    flavor: "chocolate"
                 }
             }
 
@@ -162,11 +213,11 @@
                 },
                 rho: Math.PI/4,     // angle of camera with YZ
                 alpha: -Math.PI/4,  // angle of camera with XY
-                radius: 30.0,
+                radius: 15.0,
                 translation: [0,0,0],
                 perspective: true,
                 orthographic: false,
-                followCake: false
+                followCake: true
             }
             var camera = jQuery.extend({}, CAMERA_DEFAULTS)
             
@@ -200,9 +251,13 @@
             var gui = buildDatGUI()
 
 
+            function clone(obj) {
+                return JSON.parse(JSON.stringify(obj))
+            }
+
             function generateCake() {
                 scene.remove("cake")
-                let cake = new Bakery.Cake(params.cake).build()
+                let cake = new Cake(clone(params.cake))
                 cake.translate([0,3.5,-1.5])
                 cake.setName("cake")
 
@@ -211,7 +266,7 @@
 
             function generateDecorationMachine() {
                 scene.remove("decoration machine")
-                let machine = new Bakery.DecorationMachine(params.cake.decoration).build()
+                let machine = new DecorationMachine(clone(params.cake.decoration))
                 machine.translate([0,0,4])
                 machine.setName("decoration machine")
                 scene.add(machine)
@@ -220,7 +275,7 @@
             function generateEdgeMachine() {
                 let { edge, height } = params.cake
                 scene.remove("edge machine")
-                let edgeMachine = new Bakery.EdgeMachine(edge, height).build()
+                let edgeMachine = new EdgeMachine(edge, height)
                 edgeMachine.translate([0,0,12])
                 edgeMachine.setName("edge machine")
                 scene.add(edgeMachine)
@@ -233,7 +288,9 @@
                     5*params.cake.radius/9
                 )
                 let edgeAnimations = new EdgeAnimations(scene.getChild("edge machine"), params.cake.edgesCount)
-                let cakeAnimation = new CakeAnimations(scene.getChild("cake"), decoAnimations, edgeAnimations)
+                let cakeAnimation = new CakeAnimations(
+                    scene.getChild("cake"), decoAnimations, edgeAnimations, scene.getChild("conveyor").getChild("belt")
+                )
             }
 
             function buildDatGUI() {
@@ -243,15 +300,18 @@
                 gui.add(datActions, "togglePlay").name("Play/Pause")
 
                 let cakeFolder = gui.addFolder("Cake")
+                cakeFolder.add(params.cake, "flavor",
+                    {Chocolate: "chocolate", Cream: "cream"}
+                ).name("Flavor")
                 cakeFolder.add(params.cake, "decoration",
-                    {Cones: "cone", Balls: "ball", Fruits: "fruit"}
+                    {Cones: "cone", Balls: "ball", Cookies: "cookie"}
                 ).name("Decoration")
                 cakeFolder.add(params.cake, "decorationsCount", 3, 12).name("# Decorations").step(1)
                 cakeFolder.add(params.cake, "edge", 
                     {Cylinders: "cylinder", Rectangle: "prism"}
                 ).name("Edge")
                 cakeFolder.add(params.cake, "edgesCount", 8, 32).name("# Edges").step(1)
-                cakeFolder.add(params.cake, "radius", 0.6, 1.5).name("Radius").step(0.1)
+                cakeFolder.add(params.cake, "radius", 0.6, 1.3).name("Radius").step(0.1)
                 cakeFolder.add(params.cake, "height", 0.3, 2).name("Height").step(0.1)
                 cakeFolder.add(params.cake, "floors", 1, 5).name("Floors").step(1)
                 cakeFolder.add(params.cake, "ringTwists", 1, 8).name("Ring twists").step(1)
@@ -261,8 +321,8 @@
             }
 
             function setupWebGL() {
-                //set the clear color
-                gl.clearColor(0.1, 0.1, 0.2, 1.0);     
+                // Set the clear color
+                gl.clearColor(0.8, 0.8, 0.8, 1.0);     
                 gl.enable(gl.DEPTH_TEST);                              
                 gl.depthFunc(gl.LEQUAL); 
                 gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
@@ -274,23 +334,27 @@
                 generateDecorationMachine()
                 generateEdgeMachine()
 
-                var conveyor = new Bakery.Conveyor().build()
+                var conveyor = new Conveyor()
+                conveyor.setName("conveyor")
                 conveyor.translate([0,3.5,0])
                 scene.add(conveyor)
 
-                var floor = new Revolution.Prism(40, 0.1, 30).build()
-                floor.setColor([0.3,0.3,0.3])
+                var floor = new Prism(40, 0.1, 30)
+                floor.setColor([0.5,0.5,0.6])
                 floor.translate([0,-0.05,5])
+                floor.loadTexture("maps/wood_floor.jpg", Drawing.TEXTURE_MODE.REPEAT)
                 scene.add(floor)
 
-                var wall1 = new Revolution.Prism(0.1, 15, 30).build()
+                var wall1 = new Prism(0.1, 15, 30)
                 wall1.translate([-20,7.5,5])
-                wall1.setColor([0.7,1,1])
+                wall1.setColor([1,0.7,0.7])
+                wall1.loadTexture("maps/wallpaper.jpg", Drawing.TEXTURE_MODE.REPEAT)
                 scene.add(wall1)
 
-                var wall2 = new Revolution.Prism(40, 15, 0.1).build()
+                var wall2 = new Prism(40, 15, 0.1)
                 wall2.translate([0,7.5,-10])
-                wall2.setColor([0.7,1,1])
+                wall2.setColor([1,0.7,0.7])
+                wall2.loadTexture("maps/wallpaper.jpg", Drawing.TEXTURE_MODE.REPEAT)
                 scene.add(wall2)
 
                 buildAnimations()
@@ -303,11 +367,10 @@
                 } catch(e) {}
 
                 if(gl) {
-                    buildScene();
                     setupWebGL();
                     initShaders();
+                    buildScene();
                     setDefaultPerspective()
-                    camera.radius = 15
                     setInterval(drawScene, 1000/FPS);
                 } else {    
                     alert("Error: Your browser does not appear to support WebGL.");
@@ -315,13 +378,13 @@
             }
             
             function rotateCamera() {
-                mat4.identity(mvMatrix);
-                mat4.translate(mvMatrix, mvMatrix, [0.0, 0.0, -camera.radius]);
-                mat4.rotate(mvMatrix, mvMatrix, camera.rho, [1,0,0])
-                mat4.rotate(mvMatrix, mvMatrix, camera.alpha, [0,1,0])
+                mat4.identity(vMatrix);
+                mat4.translate(vMatrix, vMatrix, [0.0, 0.0, -camera.radius]);
+                mat4.rotate(vMatrix, vMatrix, camera.rho, [1,0,0])
+                mat4.rotate(vMatrix, vMatrix, camera.alpha, [0,1,0])
                 if (camera.followCake) 
                     camera.translation = revolution.scalar(-1, scene.getChild("cake").transformation.translation)
-                mat4.translate(mvMatrix, mvMatrix, camera.translation)
+                mat4.translate(vMatrix, vMatrix, camera.translation)
             }
 
             function drawScene() {
@@ -329,13 +392,11 @@
                 
                 rotateCamera()
                 
-                setCamaraBuffers();
-                setLightBuffers();
-                setUniformLocations();
-
-                setupWebGLBuffers(scene)
-                drawVertexGrid(scene);
+                setGlobalUniforms()
                 
+                scene.draw()
+                
+                time += 1/FPS
                 scene.advance()
             }
 
