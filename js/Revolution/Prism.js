@@ -27,8 +27,14 @@ class Prism extends Object3D {
     _buildNormal() {
         let n0 = [0,0,1], n1 = [1,0,0], n2 = [0,0,-1],
             n3 = [-1,0,0], n4 = [0,1,0], n5 = [0,-1,0]
-        return [n0,n0,n0,n0,n1,n1,n1,n1,n2,n2,n2,n2,
-            n3,n3,n3,n3,n4,n4,n4,n4,n5,n5,n5,n5]
+        return [
+            n0, n0, n0, n0, 
+            n1, n1, n1, n1, 
+            n2, n2, n2, n2, 
+            n3, n3, n3, n3, 
+            n4, n4, n4, n4, 
+            n5, n5, n5, n5
+        ]
     }
 
     _buildTexture() {

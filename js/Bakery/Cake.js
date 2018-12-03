@@ -28,6 +28,7 @@ class Cake extends Object3D {
         this.add(ring)
 
         let plate = new Plate(radius*1.1)
+        plate.setGlossiness(50)
         this.add(plate)
 
         this.translate([0,plate.getHeight(),0])

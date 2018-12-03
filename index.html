@@ -95,22 +95,24 @@
                 vColor = vec4(aVertexColor,1.0);
                 vNormal = uNMatrix * vec4(aVertexNormal,1.0);
                 vTexture = aVertexTexture;
-                vPosition = aVertexPosition;
+                vPosition = vec3(uMMatrix * vec4(aVertexPosition, 1.0));
             }
         </script>
 
         <script id="shader-fs" type="x-shader/x-fragment">
             #define PI 3.1415926535897932384626433832795
+            #define LIGHTS_COUNT 3
 
             varying highp vec4 vColor;
             varying highp vec4 vNormal;
             varying highp vec3 vPosition;
 
-            uniform lowp vec3 I[4];
-            uniform lowp vec3 Ie[4];
-            uniform lowp vec3 L[4];
+            uniform lowp vec3 I[LIGHTS_COUNT];
+            uniform lowp vec3 Ie[LIGHTS_COUNT];
+            uniform lowp vec3 L[LIGHTS_COUNT];
             uniform highp vec3 vCamera;
             uniform lowp float uGlossiness;
+            uniform bool uGlossinessOn;
 
             varying highp vec2 vTexture;
             uniform bool uHasTexture;
@@ -160,10 +162,12 @@
                 }
                 
                 highp vec3 V = normalize(vCamera - vPosition);
-                for (int i = 0; i < 4; i++) {
-                    lowp vec3 lightDir = L[i] - vPosition;
+                for (int i = 0; i < LIGHTS_COUNT; i++) {
+                    lowp vec3 lightDir = normalize(L[i] - vPosition);
                     highp vec3 R = normalize(reflect(lightDir, n));
-                    finalColor += I[i]*k*(1.0+dot(lightDir,n)) + Ie[i]*k*pow(dot(R, V), uGlossiness);
+                    finalColor += I[i]*k*max(dot(lightDir,n), 0.0);
+                    if (uGlossinessOn) 
+                        finalColor += Ie[i]*k*pow(max(dot(R,V), 0.0), uGlossiness);
                 }
 
                 gl_FragColor = vec4(finalColor, 1.0);
@@ -179,9 +183,9 @@
                 BELT_VELOCITY = 5,
                 scene = new Object3D(),
                 lights = [
-                    new Light(0.03).at([0,25,0]),
-                    new Light(0.03).at([25,0,0]),
-                    new Light(0.02).at([0,15,25])
+                    new Light(0.7).at([0,25,0]),
+                    new Light(0.7).at([25,0,0]),
+                    new Light(0.5).at([0,15,50])
                 ]
 
             var pMatrix = mat4.create();
@@ -343,18 +347,19 @@
                 floor.setColor([0.5,0.5,0.6])
                 floor.translate([0,-0.05,5])
                 floor.loadTexture("maps/wood_floor.jpg", Drawing.TEXTURE_MODE.REPEAT)
+                floor.setGlossiness(50)
                 scene.add(floor)
 
                 var wall1 = new Prism(0.1, 15, 30)
                 wall1.translate([-20,7.5,5])
                 wall1.setColor([1,0.7,0.7])
-                wall1.loadTexture("maps/wallpaper.jpg", Drawing.TEXTURE_MODE.REPEAT)
+                wall1.loadTexture("maps/wallpaper2.jpg", Drawing.TEXTURE_MODE.REPEAT)
                 scene.add(wall1)
 
                 var wall2 = new Prism(40, 15, 0.1)
                 wall2.translate([0,7.5,-10])
                 wall2.setColor([1,0.7,0.7])
-                wall2.loadTexture("maps/wallpaper.jpg", Drawing.TEXTURE_MODE.REPEAT)
+                wall2.loadTexture("maps/wallpaper2.jpg", Drawing.TEXTURE_MODE.REPEAT)
                 scene.add(wall2)
 
                 buildAnimations()

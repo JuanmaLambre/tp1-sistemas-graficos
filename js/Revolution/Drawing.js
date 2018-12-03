@@ -73,6 +73,8 @@ class Drawing {
             let uNMatrix = gl.getUniformLocation(glProgram, "uNMatrix");
             gl.uniformMatrix4fv(uNMatrix, false, nTrans);
 
+            let uGlossinessOn = gl.getUniformLocation(glProgram, "uGlossinessOn")
+            gl.uniform1i(uGlossinessOn, this.getGlossiness() != 0)
             let uGlossiness = gl.getUniformLocation(glProgram, "uGlossiness")
             gl.uniform1f(uGlossiness, this.getGlossiness())
 
